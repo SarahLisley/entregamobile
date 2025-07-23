@@ -1,0 +1,115 @@
+[versions]
+# Android, Gradle & Kotlin
+agp = "8.11.1"
+compileSdk = "36"
+minSdk = "26"
+targetSdk = "36"
+kotlin = "1.9.23" # <-- CORRIGIDO
+kotlinKapt = "1.9.23" # <-- CORRIGIDO
+composeCompiler = "1.5.11"
+jvmTarget = "11"
+googleServices = "4.4.2"
+
+# Jetpack & Compose
+coreKtx = "1.13.1"
+lifecycleRuntimeKtx = "2.8.2"
+activityCompose = "1.9.0"
+composeBom = "2024.06.00"
+navigationCompose = "2.7.7"
+datastore = "1.1.1"
+room = "2.6.1"
+workRuntime = "2.9.0"
+camera = "1.3.4"
+
+# Firebase (BOM - Bill of Materials)
+firebaseBom = "33.1.1"
+
+# Bibliotecas de Terceiros
+gson = "2.10.1"
+retrofit = "2.11.0"
+okhttp = "4.12.0"
+coil = "2.6.0"
+guava = "33.2.1-android"
+
+# Google ML Kit
+mlkitTextRecognition = "16.0.0"
+mlkitBarcodeScanning = "17.2.0"
+mlkitObjectDetection = "17.0.1"
+
+# Testes
+junit = "4.13.2"
+androidxJunit = "1.1.5"
+espressoCore = "3.5.1"
+
+[libraries]
+# AndroidX Core & Jetpack
+androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycleRuntimeKtx" }
+androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
+androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
+androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
+androidx-work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "workRuntime" }
+
+# Room
+androidx-room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
+androidx-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
+androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
+
+# CameraX
+androidx-camera-core = { group = "androidx.camera", name = "camera-core", version.ref = "camera" }
+androidx-camera-camera2 = { group = "androidx.camera", name = "camera-camera2", version.ref = "camera" }
+androidx-camera-lifecycle = { group = "androidx.camera", name = "camera-lifecycle", version.ref = "camera" }
+androidx-camera-view = { group = "androidx.camera", name = "camera-view", version.ref = "camera" }
+androidx-camera-extensions = { group = "androidx.camera", name = "camera-extensions", version.ref = "camera" }
+
+# Compose (BOM e bibliotecas individuais)
+androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
+androidx-ui = { group = "androidx.compose.ui", name = "ui" }
+androidx-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" }
+androidx-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
+androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
+androidx-material-icons = { group = "androidx.compose.material", name = "material-icons-extended" }
+
+# Firebase (BOM e bibliotecas individuais sem versão)
+firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
+firebase-auth = { group = "com.google.firebase", name = "firebase-auth-ktx" }
+firebase-database = { group = "com.google.firebase", name = "firebase-database-ktx" }
+firebase-firestore = { group = "com.google.firebase", name = "firebase-firestore-ktx" }
+
+# Google Play Services & ML Kit
+play-services-location = { group = "com.google.android.gms", name = "play-services-location", version = "21.3.0" }
+mlkit-text-recognition = { group = "com.google.mlkit", name = "text-recognition", version.ref = "mlkitTextRecognition" }
+mlkit-barcode-scanning = { group = "com.google.mlkit", name = "barcode-scanning", version.ref = "mlkitBarcodeScanning" }
+mlkit-object-detection = { group = "com.google.mlkit", name = "object-detection", version.ref = "mlkitObjectDetection" }
+
+# Networking
+gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
+retrofit = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
+retrofit-converter-gson = { group = "com.squareup.retrofit2", name = "converter-gson", version.ref = "retrofit" }
+okhttp-logging-interceptor = { group = "com.squareup.okhttp3", name = "logging-interceptor", version.ref = "okhttp" }
+
+# Outros
+coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
+guava = { group = "com.google.guava", name = "guava", version.ref = "guava" }
+
+# Testes
+junit = { group = "junit", name = "junit", version.ref = "junit" }
+androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "androidxJunit" }
+androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
+androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
+androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
+androidx-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+kotlin-kapt = { id = "org.jetbrains.kotlin.kapt", version.ref = "kotlinKapt" }
+google-services = { id = "com.google.gms.google-services", version.ref = "googleServices" }
+
+[bundles]
+compose = ["androidx-ui", "androidx-ui-graphics", "androidx-ui-tooling-preview", "androidx-material3", "androidx-material-icons"]
+room = ["androidx-room-runtime", "androidx-room-ktx"]
+camera = ["androidx-camera-core", "androidx-camera-camera2", "androidx-camera-lifecycle", "androidx-camera-view", "androidx-camera-extensions"]
+firebase = ["firebase-auth", "firebase-database", "firebase-firestore"]
+mlkit = ["mlkit-text-recognition", "mlkit-barcode-scanning", "mlkit-object-detection"]
+retrofit = ["retrofit", "retrofit-converter-gson", "okhttp-logging-interceptor"]
