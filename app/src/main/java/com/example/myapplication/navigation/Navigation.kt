@@ -18,7 +18,7 @@ sealed class AppScreens(val route: String) {
     object ShoppingListScreen : AppScreens("shopping_list")
 
     object DetalheScreen : AppScreens("detalhe_receita/{receitaId}") {
-        fun createRoute(receitaId: Int): String {
+        fun createRoute(receitaId: String?): String {
             return "detalhe_receita/$receitaId"
         }
     }
@@ -51,13 +51,8 @@ fun AppNavigation() {
             ShoppingListScreen()
         }
         composable(AppScreens.DetalheScreen.route) { backStackEntry ->
-            val receitaId = backStackEntry.arguments?.getString("receitaId")?.toIntOrNull()
-            if (receitaId != null) {
-                DetalheScreen(navController = navController, receitaId = receitaId)
-            } else {
-                // Fallback seguro em caso de ID inválido
-                Text("Erro: receitaId inválido ou ausente")
-            }
+            val receitaId = backStackEntry.arguments?.getString("receitaId")
+            DetalheScreen(navController = navController, receitaId = receitaId)
         }
     }
 }

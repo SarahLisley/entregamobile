@@ -13,26 +13,36 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
-import com.example.myapplication.model.DadosMockados
+import com.example.myapplication.data.FirebaseRepository
 import com.example.myapplication.navigation.AppScreens
 import com.example.myapplication.ui.components.BottomNavigationBar
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BuscaScreen(navController: NavHostController) {
     var searchText by remember { mutableStateOf("") }
-    val receitas = remember { DadosMockados.listaDeReceitas }
-    val filteredReceitas = remember(searchText) {
+    val firebaseRepository = remember { FirebaseRepository() }
+    var receitasFirebase by remember { mutableStateOf<List<Map<String, Any>>>(emptyList()) }
+    LaunchedEffect(Unit) {
+        firebaseRepository.escutarReceitas { data ->
+            receitasFirebase = data?.values?.mapNotNull { it as? Map<String, Any> } ?: emptyList()
+        }
+    }
+    val filteredReceitas = remember(searchText, receitasFirebase) {
         if (searchText.isBlank()) {
-            receitas
+            receitasFirebase
         } else {
-            receitas.filter {
-                it.nome.contains(searchText, ignoreCase = true) ||
-                        it.ingredientes.any { ingrediente -> ingrediente.contains(searchText, ignoreCase = true) }
+            receitasFirebase.filter {
+                val nome = it["nome"] as? String ?: ""
+                val ingredientes = it["ingredientes"] as? List<*> ?: emptyList<String>()
+                nome.contains(searchText, ignoreCase = true) ||
+                        ingredientes.any { ingrediente ->
+                            ingrediente.toString().contains(searchText, ignoreCase = true)
+                        }
             }
         }
     }
-
     Scaffold(
         topBar = {
             TopAppBar(
@@ -61,33 +71,15 @@ fun BuscaScreen(navController: NavHostController) {
             Spacer(modifier = Modifier.height(16.dp))
             LazyColumn {
                 items(filteredReceitas) { receita ->
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                navController.navigate(AppScreens.DetalheScreen.createRoute(receita.id))
-                            },
-                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            AsyncImage(
-                                model = receita.imagemUrl,
-                                contentDescription = receita.nome,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(120.dp)
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = receita.nome,
-                                style = MaterialTheme.typography.titleMedium
-                            )
-                            Text(
-                                text = receita.descricaoCurta,
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                        }
-                    }
+                    ReceitaCardFirebase(
+                        receita = receita,
+                        onClick = {
+                            val id = receita["id"]?.toString() ?: ""
+                            navController.navigate(AppScreens.DetalheScreen.createRoute(id))
+                        },
+                        onEdit = {},
+                        onDelete = {}
+                    )
                     Spacer(modifier = Modifier.height(8.dp))
                 }
             }

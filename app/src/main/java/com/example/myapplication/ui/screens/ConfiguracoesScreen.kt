@@ -30,36 +30,39 @@ import java.util.Calendar
 import android.app.TimePickerDialog
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import com.example.myapplication.model.Receita
 import androidx.compose.ui.res.painterResource
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.setValue
-import com.example.myapplication.ui.screens.ReceitasViewModel
 import com.example.myapplication.notifications.NotificationHelper
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.input.TextFieldValue
+import com.example.myapplication.data.FirebaseRepository
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.*
 
 @Composable
 fun ConfiguracoesScreen(
-    onBack: () -> Unit,
-    receitasViewModel: ReceitasViewModel = viewModel()
+    onBack: () -> Unit
 ) {
-    // Cria o ViewModel com sua factory
     val context = LocalContext.current
     val viewModel: SettingsViewModel = viewModel(
         factory = SettingsViewModelFactory(
             UserPreferencesRepository(context)
         )
     )
-
-    // Coleta o estado do DataStore
-    val darkMode by viewModel.isDarkModeEnabled.collectAsState()
+    val firebaseRepository = remember { FirebaseRepository() }
+    var receitasFirebase by remember { mutableStateOf<List<Map<String, Any>>>(emptyList()) }
     var showReceitaDialog by remember { mutableStateOf(false) }
-    var receitaSelecionada by remember { mutableStateOf<Receita?>(null) }
+    var receitaSelecionada by remember { mutableStateOf<Map<String, Any>?>(null) }
     var showTimePicker by remember { mutableStateOf(false) }
+    val darkMode by viewModel.isDarkModeEnabled.collectAsState()
+
+    LaunchedEffect(Unit) {
+        firebaseRepository.escutarReceitas { data ->
+            receitasFirebase = data?.values?.mapNotNull { it as? Map<String, Any> } ?: emptyList()
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -96,7 +99,7 @@ fun ConfiguracoesScreen(
                     title = { Text("Selecione uma receita") },
                     text = {
                         LazyColumn(modifier = Modifier.height(200.dp)) {
-                            items(receitasViewModel.receitas) { receita ->
+                            items(receitasFirebase) { receita ->
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -114,7 +117,7 @@ fun ConfiguracoesScreen(
                                         modifier = Modifier.size(40.dp)
                                     )
                                     Spacer(Modifier.width(8.dp))
-                                    Text(receita.nome)
+                                    Text(receita["nome"] as? String ?: "")
                                 }
                             }
                         }
@@ -138,8 +141,8 @@ fun ConfiguracoesScreen(
                         }
                         NotificationHelper.scheduleReminder(
                             context = context,
-                            itemId = receitaSelecionada!!.id,
-                            title = receitaSelecionada!!.nome,
+                            itemId = receitaSelecionada!!["id"].toString(),
+                            title = receitaSelecionada!!["nome"] as? String ?: "",
                             timeInMillis = calendar.timeInMillis
                         )
                         showTimePicker = false

@@ -16,6 +16,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.NavType
+import com.example.myapplication.ui.components.BottomNavigationBar
+import com.example.myapplication.navigation.AppScreens
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -26,13 +28,13 @@ fun MainNav() {
     var startDestination by remember { mutableStateOf("login") }
 
     LaunchedEffect(usuario) {
-        startDestination = if (usuario == null) "login" else "firebase"
+        startDestination = if (usuario == null) "login" else AppScreens.TelaInicialScreen.route
         if (usuario == null) {
             navController.navigate("login") {
                 popUpTo(0)
             }
         } else {
-            navController.navigate("firebase") {
+            navController.navigate(AppScreens.TelaInicialScreen.route) {
                 popUpTo(0)
             }
         }
@@ -41,44 +43,17 @@ fun MainNav() {
     NavHost(navController = navController, startDestination = startDestination) {
         composable("login") {
             LoginScreen(onLoginSuccess = {
-                navController.navigate("firebase") {
+                navController.navigate(AppScreens.TelaInicialScreen.route) {
                     popUpTo("login") { inclusive = true }
                 }
             })
         }
-        composable("firebase") {
+        composable(AppScreens.TelaInicialScreen.route) {
             Scaffold(
                 topBar = {
                     TopAppBar(
-                        title = { Text("Produtos (Realtime DB)") },
+                        title = { Text("Receitas") },
                         actions = {
-                            TextButton(onClick = { navController.navigate("firestore") }) {
-                                Text("Firestore")
-                            }
-                            TextButton(onClick = { navController.navigate("movement") }) {
-                                Text("Movimento")
-                            }
-                            TextButton(onClick = { navController.navigate("location") }) {
-                                Text("Localização")
-                            }
-                            TextButton(onClick = { navController.navigate("offline") }) {
-                                Text("Offline")
-                            }
-                            TextButton(onClick = { navController.navigate("textrec") }) {
-                                Text("Reconhecimento de Texto")
-                            }
-                            TextButton(onClick = { navController.navigate("barcode") }) {
-                                Text("QR Code/Barcode")
-                            }
-                            TextButton(onClick = { navController.navigate("barcodecam") }) {
-                                Text("Barcode Câmera")
-                            }
-                            TextButton(onClick = { navController.navigate("objectdetection") }) {
-                                Text("Reconhecimento de Objetos")
-                            }
-                            TextButton(onClick = { navController.navigate("settings") }) {
-                                Text("Configurações")
-                            }
                             TextButton(onClick = {
                                 authViewModel.logout()
                                 navController.navigate("login") {
@@ -89,257 +64,46 @@ fun MainNav() {
                             }
                         }
                     )
-                }
+                },
+                bottomBar = { BottomNavigationBar(navController) }
             ) { paddingValues ->
-                ProdutosFirebaseScreen()
+                TelaInicial(navController)
             }
         }
-        composable("firestore") {
+        composable(AppScreens.FavoritosScreen.route) {
             Scaffold(
                 topBar = {
-                    TopAppBar(
-                        title = { Text("Produtos (Firestore)") },
-                        actions = {
-                            TextButton(onClick = { navController.navigate("firebase") }) {
-                                Text("Realtime DB")
-                            }
-                            TextButton(onClick = { navController.navigate("movement") }) {
-                                Text("Movimento")
-                            }
-                            TextButton(onClick = { navController.navigate("location") }) {
-                                Text("Localização")
-                            }
-                            TextButton(onClick = { navController.navigate("offline") }) {
-                                Text("Offline")
-                            }
-                            TextButton(onClick = { navController.navigate("textrec") }) {
-                                Text("Reconhecimento de Texto")
-                            }
-                            TextButton(onClick = { navController.navigate("barcode") }) {
-                                Text("QR Code/Barcode")
-                            }
-                            TextButton(onClick = { navController.navigate("barcodecam") }) {
-                                Text("Barcode Câmera")
-                            }
-                            TextButton(onClick = { navController.navigate("objectdetection") }) {
-                                Text("Reconhecimento de Objetos")
-                            }
-                            TextButton(onClick = { navController.navigate("settings") }) {
-                                Text("Configurações")
-                            }
-                            TextButton(onClick = {
-                                authViewModel.logout()
-                                navController.navigate("login") {
-                                    popUpTo(0)
-                                }
-                            }) {
-                                Text("Logout")
-                            }
-                        }
-                    )
-                }
+                    TopAppBar(title = { Text("Favoritos") })
+                },
+                bottomBar = { BottomNavigationBar(navController) }
             ) { paddingValues ->
-                ProdutosFirestoreScreen()
+                FavoritosScreen(navController)
             }
         }
-        composable("movement") {
+        composable(AppScreens.BuscaScreen.route) {
             Scaffold(
                 topBar = {
-                    TopAppBar(
-                        title = { Text("Sensibilidade ao Movimento") },
-                        actions = {
-                            TextButton(onClick = { navController.navigate("location") }) {
-                                Text("Localização")
-                            }
-                            TextButton(onClick = { navController.navigate("offline") }) {
-                                Text("Offline")
-                            }
-                            TextButton(onClick = { navController.navigate("textrec") }) {
-                                Text("Reconhecimento de Texto")
-                            }
-                            TextButton(onClick = { navController.navigate("barcode") }) {
-                                Text("QR Code/Barcode")
-                            }
-                            TextButton(onClick = { navController.navigate("barcodecam") }) {
-                                Text("Barcode Câmera")
-                            }
-                            TextButton(onClick = { navController.navigate("objectdetection") }) {
-                                Text("Reconhecimento de Objetos")
-                            }
-                            TextButton(onClick = { navController.navigate("settings") }) {
-                                Text("Configurações")
-                            }
-                            TextButton(onClick = { navController.popBackStack() }) {
-                                Text("Voltar")
-                            }
-                        }
-                    )
-                }
+                    TopAppBar(title = { Text("Buscar Receitas") })
+                },
+                bottomBar = { BottomNavigationBar(navController) }
             ) { paddingValues ->
-                MovementDemoScreen()
+                BuscaScreen(navController)
             }
         }
-        composable("location") {
+        composable(AppScreens.ConfiguracoesScreen.route) {
             Scaffold(
                 topBar = {
-                    TopAppBar(
-                        title = { Text("Sensibilidade à Localização") },
-                        actions = {
-                            TextButton(onClick = { navController.navigate("offline") }) {
-                                Text("Offline")
-                            }
-                            TextButton(onClick = { navController.navigate("textrec") }) {
-                                Text("Reconhecimento de Texto")
-                            }
-                            TextButton(onClick = { navController.navigate("barcode") }) {
-                                Text("QR Code/Barcode")
-                            }
-                            TextButton(onClick = { navController.navigate("barcodecam") }) {
-                                Text("Barcode Câmera")
-                            }
-                            TextButton(onClick = { navController.navigate("objectdetection") }) {
-                                Text("Reconhecimento de Objetos")
-                            }
-                            TextButton(onClick = { navController.navigate("settings") }) {
-                                Text("Configurações")
-                            }
-                            TextButton(onClick = { navController.popBackStack() }) {
-                                Text("Voltar")
-                            }
-                        }
-                    )
-                }
+                    TopAppBar(title = { Text("Configurações") })
+                },
+                bottomBar = { BottomNavigationBar(navController) }
             ) { paddingValues ->
-                LocationDemoScreen()
+                ConfiguracoesScreen(onBack = { navController.popBackStack() })
             }
         }
-        composable("offline") {
-            Scaffold(
-                topBar = {
-                    TopAppBar(
-                        title = { Text("Produtos Offline (Room)") },
-                        actions = {
-                            TextButton(onClick = { navController.navigate("textrec") }) {
-                                Text("Reconhecimento de Texto")
-                            }
-                            TextButton(onClick = { navController.navigate("barcode") }) {
-                                Text("QR Code/Barcode")
-                            }
-                            TextButton(onClick = { navController.navigate("barcodecam") }) {
-                                Text("Barcode Câmera")
-                            }
-                            TextButton(onClick = { navController.navigate("objectdetection") }) {
-                                Text("Reconhecimento de Objetos")
-                            }
-                            TextButton(onClick = { navController.navigate("settings") }) {
-                                Text("Configurações")
-                            }
-                            TextButton(onClick = { navController.popBackStack() }) {
-                                Text("Voltar")
-                            }
-                        }
-                    )
-                }
-            ) { paddingValues ->
-                ProdutosOfflineScreen()
-            }
+        composable(AppScreens.DetalheScreen.route) { backStackEntry ->
+            val receitaId = backStackEntry.arguments?.getString("receitaId")
+            DetalheScreen(navController = navController, receitaId = receitaId)
         }
-        composable("textrec") {
-            Scaffold(
-                topBar = {
-                    TopAppBar(
-                        title = { Text("Reconhecimento de Texto em Imagem") },
-                        actions = {
-                            TextButton(onClick = { navController.navigate("barcode") }) {
-                                Text("QR Code/Barcode")
-                            }
-                            TextButton(onClick = { navController.navigate("barcodecam") }) {
-                                Text("Barcode Câmera")
-                            }
-                            TextButton(onClick = { navController.navigate("objectdetection") }) {
-                                Text("Reconhecimento de Objetos")
-                            }
-                            TextButton(onClick = { navController.navigate("settings") }) {
-                                Text("Configurações")
-                            }
-                            TextButton(onClick = { navController.popBackStack() }) {
-                                Text("Voltar")
-                            }
-                        }
-                    )
-                }
-            ) { paddingValues ->
-                TextRecognitionScreen()
-            }
-        }
-        composable("barcode") {
-            Scaffold(
-                topBar = {
-                    TopAppBar(
-                        title = { Text("Leitura de QR Code/Barcode") },
-                        actions = {
-                            TextButton(onClick = { navController.navigate("barcodecam") }) {
-                                Text("Barcode Câmera")
-                            }
-                            TextButton(onClick = { navController.navigate("objectdetection") }) {
-                                Text("Reconhecimento de Objetos")
-                            }
-                            TextButton(onClick = { navController.navigate("settings") }) {
-                                Text("Configurações")
-                            }
-                            TextButton(onClick = { navController.popBackStack() }) {
-                                Text("Voltar")
-                            }
-                        }
-                    )
-                }
-            ) { paddingValues ->
-                BarcodeScannerScreen()
-            }
-        }
-        composable("barcodecam") {
-            Scaffold(
-                topBar = {
-                    TopAppBar(
-                        title = { Text("Leitura de QR Code/Barcode em tempo real") },
-                        actions = {
-                            TextButton(onClick = { navController.navigate("objectdetection") }) {
-                                Text("Reconhecimento de Objetos")
-                            }
-                            TextButton(onClick = { navController.navigate("settings") }) {
-                                Text("Configurações")
-                            }
-                            TextButton(onClick = { navController.popBackStack() }) {
-                                Text("Voltar")
-                            }
-                        }
-                    )
-                }
-            ) { paddingValues ->
-                BarcodeCameraScreen()
-            }
-        }
-        composable("objectdetection") {
-            Scaffold(
-                topBar = {
-                    TopAppBar(
-                        title = { Text("Reconhecimento de Objetos em Imagem") },
-                        actions = {
-                            TextButton(onClick = { navController.navigate("settings") }) {
-                                Text("Configurações")
-                            }
-                            TextButton(onClick = { navController.popBackStack() }) {
-                                Text("Voltar")
-                            }
-                        }
-                    )
-                }
-            ) { paddingValues ->
-                ObjectDetectionScreen()
-            }
-        }
-        composable("settings") {
-            SettingsScreen()
-        }
+        // Demais rotas técnicas podem ser acessadas a partir das telas principais
     }
 }

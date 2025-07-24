@@ -11,13 +11,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
-import com.example.myapplication.model.DadosMockados
 import com.example.myapplication.ui.components.BottomNavigationBar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AjudaScreen(navController: NavHostController) {
-    val perguntas = DadosMockados.listaDePerguntasFrequentes
+    // Remover import e uso de DadosMockados
 
     Scaffold(
         topBar = {
@@ -46,7 +45,7 @@ fun AjudaScreen(navController: NavHostController) {
             Text("Perguntas Frequentes", style = MaterialTheme.typography.headlineSmall)
             Spacer(modifier = Modifier.height(8.dp))
             LazyColumn {
-                items(perguntas) { pergunta ->
+                items(listOf("Pergunta 1", "Pergunta 2", "Pergunta 3")) { pergunta ->
                     Text("- $pergunta", style = MaterialTheme.typography.bodyLarge)
                     Divider()
                     Spacer(modifier = Modifier.height(4.dp))

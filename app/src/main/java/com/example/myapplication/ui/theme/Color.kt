@@ -4,31 +4,34 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 
-val Purple80 = Color(0xFFD0BCFF)
-val PurpleGrey80 = Color(0xFFCCC2DC)
-val Pink80 = Color(0xFFEFB8C8)
-
-val Purple40 = Color(0xFF6650a4)
-val PurpleGrey40 = Color(0xFF625b71)
-val Pink40 = Color(0xFF7D5260)
-
+val GreenLight = Color(0xFFEAF8EE) // Fundo
+val GreenMedium = Color(0xFF6FCF97) // Destaques
+val GreenCard = Color(0xFFF6FBF7) // Card
+val OrangeFav = Color(0xFFFF8A65) // Favoritos
+val GrayText = Color(0xFF333333) // Títulos
+val GrayDesc = Color(0xFF757575) // Descrições
+val White = Color(0xFFFFFFFF)
 
 val LightColors = lightColorScheme(
-    primary   = Color(0xFF6750A4),
-    secondary = Color(0xFF625B71),
-    background= Color(0xFFFFFBFE),
-    surface   = Color(0xFFFFFBFE),
-    onPrimary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    /* adicione mais cores se desejar */
+    primary   = GreenMedium,
+    secondary = OrangeFav,
+    background= GreenLight,
+    surface   = GreenCard,
+    onPrimary = White,
+    onSecondary = White,
+    onBackground = GrayText,
+    onSurface = GrayText,
+    tertiary = GreenMedium,
 )
 
 val DarkColors = darkColorScheme(
-    primary   = Color(0xFFD0BCFF),
-    secondary = Color(0xFFCCC2DC),
-    background= Color(0xFF1C1B1F),
-    surface   = Color(0xFF1C1B1F),
-    onPrimary = Color(0xFF381E72),
+    primary   = GreenMedium,
+    secondary = OrangeFav,
+    background= Color(0xFF181A20),
+    surface   = Color(0xFF23272F),
+    onPrimary = White,
+    onSecondary = White,
     onBackground = Color(0xFFE6E1E5),
-    /* ... */
+    onSurface = Color(0xFFE6E1E5),
+    tertiary = GreenMedium,
 )

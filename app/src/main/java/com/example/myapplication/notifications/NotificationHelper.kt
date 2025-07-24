@@ -18,18 +18,19 @@ object NotificationHelper {
    */
   fun scheduleReminder(
     context: Context,
-    itemId: Int,
+    itemId: String,
     title: String,
     timeInMillis: Long
   ) {
+    val itemIdInt = itemId.hashCode()
     val intent = Intent(context, ReminderReceiver::class.java).apply {
-      putExtra("itemId", itemId)
+      putExtra("itemId", itemIdInt)
       putExtra("title", title)
     }
 
     val pendingIntent = PendingIntent.getBroadcast(
       context,
-      itemId,
+      itemIdInt,
       intent,
       PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
     )
