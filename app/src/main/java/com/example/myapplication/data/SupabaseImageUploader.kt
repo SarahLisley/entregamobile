@@ -3,6 +3,7 @@ package com.example.myapplication.data
 import android.content.Context
 import android.net.Uri
 import android.util.Log
+import com.example.myapplication.BuildConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
@@ -12,9 +13,10 @@ import okhttp3.RequestBody
 import java.io.IOException
 
 object SupabaseImageUploader {
-    private const val SUPABASE_URL = "https://zfbkkrtpnoteapbxfuos.supabase.co"
-    private const val SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpmYmtrcnRwbm90ZWFwYnhmdW9zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMzNzgxMzIsImV4cCI6MjA2ODk1NDEzMn0.-hvEHVZY08vBKkFlK3fqIBhOs1_8HzIzGCop2OurB_U"
     private const val BUCKET = "receitas"
+
+    private val SUPABASE_URL: String get() = BuildConfig.SUPABASE_URL
+    private val SUPABASE_KEY: String get() = BuildConfig.SUPABASE_KEY
 
     suspend fun uploadImage(context: Context, imageUri: Uri): String? = withContext(Dispatchers.IO) {
         Log.d("SupabaseUpload", "Iniciando upload da imagem: $imageUri")

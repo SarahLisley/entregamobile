@@ -67,7 +67,7 @@ androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", versi
 androidx-ui = { group = "androidx.compose.ui", name = "ui" }
 androidx-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" }
 androidx-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
-androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
+androidx-material3 = { group = "androidx.compose.material3", name = "material3", version = "1.2.1" }
 androidx-material-icons = { group = "androidx.compose.material", name = "material-icons-extended" }
 
 # Firebase (BOM e bibliotecas individuais sem versão)
@@ -112,4 +112,3 @@ room = ["androidx-room-runtime", "androidx-room-ktx"]
 camera = ["androidx-camera-core", "androidx-camera-camera2", "androidx-camera-lifecycle", "androidx-camera-view", "androidx-camera-extensions"]
 firebase = ["firebase-auth", "firebase-database", "firebase-firestore"]
 mlkit = ["mlkit-text-recognition", "mlkit-barcode-scanning", "mlkit-object-detection"]
-retrofit = ["retrofit", "retrofit-converter-gson", "okhttp-logging-interceptor"]

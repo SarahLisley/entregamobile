@@ -5,6 +5,15 @@ plugins {
     alias(libs.plugins.google.services)
 }
 
+import java.util.Properties
+import java.io.FileInputStream
+
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localProperties.load(FileInputStream(localPropertiesFile))
+}
+
 android {
     namespace = "com.example.myapplication" // Mantenha o seu namespace
     compileSdk = libs.versions.compileSdk.get().toInt()
@@ -20,7 +29,13 @@ android {
     }
 
     buildTypes {
+        debug {
+            buildConfigField("String", "SUPABASE_URL", "\"${localProperties.getProperty("SUPABASE_URL") ?: ""}\"")
+            buildConfigField("String", "SUPABASE_KEY", "\"${localProperties.getProperty("SUPABASE_KEY") ?: ""}\"")
+        }
         release {
+            buildConfigField("String", "SUPABASE_URL", "\"${localProperties.getProperty("SUPABASE_URL") ?: ""}\"")
+            buildConfigField("String", "SUPABASE_KEY", "\"${localProperties.getProperty("SUPABASE_KEY") ?: ""}\"")
             isMinifyEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
@@ -36,6 +51,7 @@ android {
         jvmTarget = libs.versions.jvmTarget.get()
     }
     buildFeatures {
+        buildConfig = true
         compose = true
     }
     composeOptions {
@@ -62,14 +78,13 @@ dependencies {
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.datastore.preferences)
-    implementation(libs.androidx.work.runtime.ktx)
+    implementation(libs.androidx.material3)
 
     // Bundles (Grupos de bibliotecas do libs.versions.toml)
     implementation(libs.bundles.compose)
     implementation(libs.bundles.room)
     implementation(libs.bundles.camera)
     implementation(libs.bundles.firebase)
-    implementation(libs.bundles.retrofit)
 
     // Processador de Anotações (Kapt) para o Room
     kapt(libs.androidx.room.compiler)

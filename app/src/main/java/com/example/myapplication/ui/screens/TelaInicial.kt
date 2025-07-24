@@ -69,48 +69,38 @@ import android.net.Uri
 import androidx.activity.result.contract.ActivityResultContracts
 import com.example.myapplication.data.FirebaseRepository
 import com.example.myapplication.data.SupabaseImageUploader
+import androidx.compose.runtime.collectAsState
+import androidx.compose.material3.SnackbarHostState
+import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.SnackbarHost
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
-fun TelaInicial(navController: NavHostController, receitasViewModel: ReceitasViewModel = viewModel()) {
+fun TelaInicial(navController: NavHostController) {
+    val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    val receitasViewModel: ReceitasViewModel = viewModel()
+    val uiState by receitasViewModel.uiState.collectAsState()
+    val authViewModel: AuthViewModel = viewModel()
+    val usuario = authViewModel.usuarioAtual()
+    val isUsuarioLogado = usuario != null
     var expandedMenu by remember { mutableStateOf(false) }
     var showDialog by remember { mutableStateOf(false) }
-    // Variáveis de estado para edição/deleção
     var novoNome by remember { mutableStateOf("") }
     var novaDescricao by remember { mutableStateOf("") }
     var novoTempo by remember { mutableStateOf("") }
     var novasPorcoes by remember { mutableStateOf("") }
     var novosIngredientes by remember { mutableStateOf("") }
     var novoModoPreparo by remember { mutableStateOf("") }
-    var itemEditando by remember { mutableStateOf<Map<String, Any>?>(null) }
-    var showEditDialog by remember { mutableStateOf(false) }
-    var receitaParaDeletar by remember { mutableStateOf<Map<String, Any>?>(null) }
-    var showDeleteDialog by remember { mutableStateOf(false) }
-    // Variáveis de estado para imagem/upload
     var imagemUri by remember { mutableStateOf<Uri?>(null) }
-    var isUploading by remember { mutableStateOf(false) }
-    var uploadError by remember { mutableStateOf<String?>(null) }
-    val scope = rememberCoroutineScope()
-    val firebaseRepository = remember { FirebaseRepository() }
-    var receitasFirebase by remember { mutableStateOf<List<Map<String, Any>>>(emptyList()) }
-    val authViewModel: AuthViewModel = viewModel()
-    val usuario = authViewModel.usuarioAtual()
-    val isUsuarioLogado = usuario != null
-    var likeScale by remember { mutableStateOf(1f) }
-    var favScale by remember { mutableStateOf(1f) }
-    val animatedLikeScale by animateFloatAsState(targetValue = likeScale, animationSpec = spring())
-    val animatedFavScale by animateFloatAsState(targetValue = favScale, animationSpec = spring())
-    LaunchedEffect(Unit) {
-        firebaseRepository.escutarReceitas { data ->
-            receitasFirebase = data?.values?.mapNotNull {
-                it as? Map<String, Any>
-            } ?: emptyList()
-        }
-    }
     val imagePickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         if (uri != null) imagemUri = uri
     }
-    val context = LocalContext.current
+    var receitaParaDeletar by remember { mutableStateOf<Map<String, Any>?>(null) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
     Scaffold(
         topBar = {
             TopAppBar(
@@ -164,8 +154,68 @@ fun TelaInicial(navController: NavHostController, receitasViewModel: ReceitasVie
             ) {
                 Icon(Icons.Filled.Add, contentDescription = "Adicionar novo item")
             }
-        }
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { paddingValues ->
+        when (uiState) {
+            is ReceitasUiState.Loading -> {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            }
+            is ReceitasUiState.Error -> {
+                val msg = (uiState as ReceitasUiState.Error).message
+                LaunchedEffect(msg) {
+                    snackbarHostState.showSnackbar(msg)
+                }
+            }
+            is ReceitasUiState.SuccessMessage -> {
+                val msg = (uiState as ReceitasUiState.SuccessMessage).message
+                LaunchedEffect(msg) {
+                    snackbarHostState.showSnackbar(msg)
+                }
+            }
+            is ReceitasUiState.Success -> {
+                val receitas = (uiState as ReceitasUiState.Success).receitas
+                Box(
+                    modifier = Modifier
+                        .padding(paddingValues)
+                        .fillMaxSize()
+                ) {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(items = receitas, key = { it["id"] as? String ?: it["id"].toString() }) { receita ->
+                            AnimatedVisibility(
+                                visible = true,
+                                enter = fadeIn(tween(300)) + slideInVertically(animationSpec = tween(300)) { it / 2 }
+                            ) {
+                                ReceitaCardFirebase(
+                                    receita = receita,
+                                    onClick = {
+                                        val id = receita["id"]?.toString() ?: ""
+                                        navController.navigate(AppScreens.DetalheScreen.createRoute(id))
+                                    },
+                                    onEdit = {}, // edição não implementada
+                                    onDelete = {
+                                        receitaParaDeletar = receita
+                                        showDeleteDialog = true
+                                    },
+                                    onCurtir = { id, userId, curtidas ->
+                                        receitasViewModel.curtirReceita(id, userId, curtidas)
+                                    },
+                                    onFavoritar = { id, userId, favoritos ->
+                                        receitasViewModel.favoritarReceita(id, userId, favoritos)
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
         if (showDialog) {
             AlertDialog(
                 onDismissRequest = { showDialog = false },
@@ -176,12 +226,6 @@ fun TelaInicial(navController: NavHostController, receitasViewModel: ReceitasVie
                             Text(if (imagemUri == null) "Selecionar Imagem" else "Imagem Selecionada")
                         }
                         Spacer(Modifier.height(8.dp))
-                        if (isUploading) {
-                            Text("Enviando imagem...", color = MaterialTheme.colorScheme.primary)
-                        }
-                        if (uploadError != null) {
-                            Text("Erro ao enviar imagem: $uploadError", color = MaterialTheme.colorScheme.error)
-                        }
                         OutlinedTextField(
                             value = novoNome,
                             onValueChange = { novoNome = it },
@@ -219,154 +263,53 @@ fun TelaInicial(navController: NavHostController, receitasViewModel: ReceitasVie
                 confirmButton = {
                     Button(onClick = {
                         if (novoNome.isNotBlank() && imagemUri != null) {
-                            scope.launch {
-                                isUploading = true
-                                uploadError = null
-                                var imageUrl: String? = null
-                                try {
-                                    imageUrl = SupabaseImageUploader.uploadImage(context = context, imageUri = imagemUri!!)
-                                } catch (e: Exception) {
-                                    uploadError = e.message
-                                }
-                                isUploading = false
-                                if (imageUrl != null) {
-                                    val userId = usuario?.uid ?: "anon"
-                                    val userEmail = usuario?.email ?: ""
-                                    val id = System.currentTimeMillis().toString()
-                                    firebaseRepository.salvarReceita(
-                                        id = id,
-                                        nome = novoNome,
-                                        descricaoCurta = novaDescricao,
-                                        imagemUri = null, // não envia imagem para o Firebase
-                                        ingredientes = novosIngredientes.split('\n').filter { it.isNotBlank() },
-                                        modoPreparo = novoModoPreparo.split('\n').filter { it.isNotBlank() },
-                                        tempoPreparo = novoTempo,
-                                        porcoes = novasPorcoes.toIntOrNull() ?: 1,
-                                        userId = userId,
-                                        userEmail = userEmail,
-                                        imagemUrl = imageUrl // novo parâmetro
-                                    )
-                                    // Remover a linha que atualiza imagemUrl separadamente
-                                    // firebaseRepository.db.child(id).child("imagemUrl").setValue(imageUrl)
-                                    novoNome = ""
-                                    novaDescricao = ""
-                                    novoTempo = ""
-                                    novasPorcoes = ""
-                                    novosIngredientes = ""
-                                    novoModoPreparo = ""
-                                    imagemUri = null
-                                    showDialog = false
-                                }
-                            }
+                            receitasViewModel.adicionarReceita(
+                                context = context,
+                                nome = novoNome,
+                                descricaoCurta = novaDescricao,
+                                imagemUri = imagemUri,
+                                ingredientes = novosIngredientes.split('\n').filter { it.isNotBlank() },
+                                modoPreparo = novoModoPreparo.split('\n').filter { it.isNotBlank() },
+                                tempoPreparo = novoTempo,
+                                porcoes = novasPorcoes.toIntOrNull() ?: 1,
+                                userId = usuario?.uid ?: "anon",
+                                userEmail = usuario?.email ?: ""
+                            )
+                            novoNome = ""
+                            novaDescricao = ""
+                            novoTempo = ""
+                            novasPorcoes = ""
+                            novosIngredientes = ""
+                            novoModoPreparo = ""
+                            imagemUri = null
+                            showDialog = false
                         }
-                    }, enabled = !isUploading) {
-                        Text("Adicionar")
-                    }
+                    }) { Text("Adicionar") }
                 },
                 dismissButton = {
-                    Button(onClick = { showDialog = false }) {
-                        Text("Cancelar")
-                    }
+                    Button(onClick = { showDialog = false }) { Text("Cancelar") }
                 }
             )
         }
-        if (showEditDialog && itemEditando != null) {
+        if (showDeleteDialog && receitaParaDeletar != null) {
             AlertDialog(
-                onDismissRequest = { showEditDialog = false },
-                title = { Text("Editar item") },
-                text = {
-                    OutlinedTextField(
-                        value = novoNome,
-                        onValueChange = { novoNome = it },
-                        label = { Text("Novo nome") }
-                    )
-                },
+                onDismissRequest = { showDeleteDialog = false; receitaParaDeletar = null },
+                title = { Text("Deletar receita") },
+                text = { Text("Tem certeza que deseja deletar esta receita?") },
                 confirmButton = {
                     Button(onClick = {
-                        if (novoNome.isNotBlank() && itemEditando != null) {
-                            // Remover referência a editarNome, pois não existe mais lógica de edição local.
-                            showEditDialog = false
-                        }
-                    }) {
-                        Text("Salvar")
-                    }
+                        val id = receitaParaDeletar?.get("id")?.toString() ?: return@Button
+                        val imagemUrl = receitaParaDeletar?.get("imagemUrl") as? String ?: ""
+                        receitasViewModel.deletarReceita(id, imagemUrl)
+                        showDeleteDialog = false
+                        receitaParaDeletar = null
+                    }) { Text("Deletar") }
                 },
                 dismissButton = {
-                    Button(onClick = { showEditDialog = false }) {
-                        Text("Cancelar")
-                    }
+                    Button(onClick = { showDeleteDialog = false; receitaParaDeletar = null }) { Text("Cancelar") }
                 }
             )
         }
-        Box(
-            modifier = Modifier
-                .padding(paddingValues)
-                .fillMaxSize()
-        ) {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(items = receitasFirebase, key = { it["id"] as? String ?: it["id"].toString() }) { receita ->
-                    AnimatedVisibility(
-                        visible = true,
-                        enter = fadeIn(tween(300)) + slideInVertically(animationSpec = tween(300)) { it / 2 }
-                    ) {
-                        ReceitaCardFirebase(
-                            receita = receita,
-                            onClick = {
-                                val id = receita["id"]?.toString() ?: ""
-                                navController.navigate(AppScreens.DetalheScreen.createRoute(id))
-                            },
-                            onEdit = {
-                                novoNome = receita["nome"] as? String ?: ""
-                                novaDescricao = receita["descricaoCurta"] as? String ?: ""
-                                novoTempo = receita["tempoPreparo"] as? String ?: ""
-                                novasPorcoes = (receita["porcoes"] as? Number)?.toString() ?: ""
-                                novosIngredientes = (receita["ingredientes"] as? List<*>)?.joinToString("\n") ?: ""
-                                novoModoPreparo = (receita["modoPreparo"] as? List<*>)?.joinToString("\n") ?: ""
-                                itemEditando = receita
-                                showEditDialog = true
-                            },
-                            onDelete = {
-                                receitaParaDeletar = receita
-                                showDeleteDialog = true
-                            }
-                        )
-                    }
-                }
-            }
-        }
-    }
-    // Diálogo de confirmação de deleção
-    if (showDeleteDialog && receitaParaDeletar != null) {
-        AlertDialog(
-            onDismissRequest = { showDeleteDialog = false; receitaParaDeletar = null },
-            title = { Text("Deletar receita") },
-            text = { Text("Tem certeza que deseja deletar esta receita?") },
-            confirmButton = {
-                Button(onClick = {
-                    val id = receitaParaDeletar?.get("id")?.toString() ?: return@Button
-                    val imagemUrl = receitaParaDeletar?.get("imagemUrl") as? String ?: ""
-                    scope.launch {
-                        if (imagemUrl.isNotBlank()) {
-                            SupabaseImageUploader.deleteImageByUrl(imagemUrl)
-                        }
-                        firebaseRepository.db.child(id).removeValue()
-                        showDeleteDialog = false
-                        receitaParaDeletar = null
-                    }
-                }) {
-                    Text("Deletar")
-                }
-            },
-            dismissButton = {
-                Button(onClick = { showDeleteDialog = false; receitaParaDeletar = null }) {
-                    Text("Cancelar")
-                }
-            }
-        )
     }
 }
 
@@ -376,8 +319,10 @@ fun TelaInicial(navController: NavHostController, receitasViewModel: ReceitasVie
 fun ReceitaCardFirebase(
     receita: Map<String, Any>,
     onClick: () -> Unit,
-    onEdit: () -> Unit,
-    onDelete: () -> Unit
+    onEdit: () -> Unit = {},
+    onDelete: () -> Unit = {},
+    onCurtir: (id: String, userId: String, curtidas: List<String>) -> Unit = { _, _, _ -> },
+    onFavoritar: (id: String, userId: String, favoritos: List<String>) -> Unit = { _, _, _ -> }
 ) {
     val firebaseRepository = remember { FirebaseRepository() }
     val authViewModel: AuthViewModel = viewModel()
@@ -484,8 +429,7 @@ fun ReceitaCardFirebase(
                             isLiked = newLike
                             likeScale = 1.2f
                             scope.launch {
-                                val atualizados = if (newLike) curtidas + userId else curtidas - userId
-                                firebaseRepository.db.child(id).child("curtidas").setValue(atualizados)
+                                onCurtir(id, userId, curtidas)
                                 likeScale = 1f
                             }
                         },
@@ -506,8 +450,7 @@ fun ReceitaCardFirebase(
                             isFavorite = newFav
                             favScale = 1.2f
                             scope.launch {
-                                val atualizados = if (newFav) favoritos + userId else favoritos - userId
-                                firebaseRepository.db.child(id).child("favoritos").setValue(atualizados)
+                                onFavoritar(id, userId, favoritos)
                                 favScale = 1f
                             }
                         },
