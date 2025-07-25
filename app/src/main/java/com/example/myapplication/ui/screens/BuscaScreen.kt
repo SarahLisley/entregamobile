@@ -9,6 +9,7 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
@@ -16,31 +17,42 @@ import coil.compose.AsyncImage
 import com.example.myapplication.data.FirebaseRepository
 import com.example.myapplication.navigation.AppScreens
 import com.example.myapplication.ui.components.BottomNavigationBar
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.myapplication.ui.screens.ReceitasViewModel
+import com.example.myapplication.ui.screens.ReceitasUiState
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BuscaScreen(navController: NavHostController) {
     var searchText by remember { mutableStateOf("") }
-    val firebaseRepository = remember { FirebaseRepository() }
-    var receitasFirebase by remember { mutableStateOf<List<Map<String, Any>>>(emptyList()) }
+    val navBackStackEntry = navController.getBackStackEntry(AppScreens.TelaInicialScreen.route)
+    val receitasViewModel: ReceitasViewModel = viewModel(viewModelStoreOwner = navBackStackEntry)
+    val uiState by receitasViewModel.uiState.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+    // Coleta eventos únicos do ViewModel para exibir Snackbars
     LaunchedEffect(Unit) {
-        firebaseRepository.escutarReceitas { data ->
-            receitasFirebase = data?.values?.mapNotNull { it as? Map<String, Any> } ?: emptyList()
+        receitasViewModel.eventFlow.collect { message ->
+            snackbarHostState.showSnackbar(message)
         }
     }
-    val filteredReceitas = remember(searchText, receitasFirebase) {
-        if (searchText.isBlank()) {
-            receitasFirebase
-        } else {
-            receitasFirebase.filter {
-                val nome = it["nome"] as? String ?: ""
-                val ingredientes = it["ingredientes"] as? List<*> ?: emptyList<String>()
-                nome.contains(searchText, ignoreCase = true) ||
-                        ingredientes.any { ingrediente ->
-                            ingrediente.toString().contains(searchText, ignoreCase = true)
-                        }
+    val filteredReceitas = remember(searchText, uiState) {
+        if (uiState is ReceitasUiState.Success) {
+            val receitas = (uiState as ReceitasUiState.Success).receitas
+            if (searchText.isBlank()) {
+                receitas
+            } else {
+                receitas.filter {
+                    val nome = it["nome"] as? String ?: ""
+                    val ingredientes = it["ingredientes"] as? List<*> ?: emptyList<String>()
+                    nome.contains(searchText, ignoreCase = true) ||
+                            ingredientes.any { ingrediente ->
+                                ingrediente.toString().contains(searchText, ignoreCase = true)
+                            }
+                }
             }
+        } else {
+            emptyList()
         }
     }
     Scaffold(
@@ -54,7 +66,8 @@ fun BuscaScreen(navController: NavHostController) {
                 }
             )
         },
-        bottomBar = { BottomNavigationBar(navController = navController) }
+        bottomBar = { BottomNavigationBar(navController = navController) },
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -69,18 +82,29 @@ fun BuscaScreen(navController: NavHostController) {
                 modifier = Modifier.fillMaxWidth()
             )
             Spacer(modifier = Modifier.height(16.dp))
-            LazyColumn {
-                items(filteredReceitas) { receita ->
-                    ReceitaCardFirebase(
-                        receita = receita,
-                        onClick = {
-                            val id = receita["id"]?.toString() ?: ""
-                            navController.navigate(AppScreens.DetalheScreen.createRoute(id))
-                        },
-                        onEdit = {},
-                        onDelete = {}
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
+            if (uiState is ReceitasUiState.Loading) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            } else if (uiState is ReceitasUiState.Error) {
+                val msg = (uiState as ReceitasUiState.Error).message
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(msg)
+                }
+            } else {
+                LazyColumn {
+                    items(filteredReceitas) { receita ->
+                        ReceitaCardFirebase(
+                            receita = receita,
+                            onClick = {
+                                val id = receita["id"]?.toString() ?: ""
+                                navController.navigate(AppScreens.DetalheScreen.createRoute(id))
+                            },
+                            onEdit = {},
+                            onDelete = {}
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
                 }
             }
         }

@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.myapplication.navigation.AppScreens
 import coil.compose.AsyncImage
 import com.example.myapplication.data.FirebaseRepository
 import com.example.myapplication.data.SupabaseImageUploader
@@ -45,7 +46,12 @@ fun DetalheScreen(navController: NavHostController, receitaId: String?) {
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
-    val receitasViewModel: ReceitasViewModel = viewModel()
+    val owner = LocalViewModelStoreOwner.current
+    if (owner == null) {
+        Text("Erro interno: ViewModelStoreOwner não encontrado.")
+        return
+    }
+    val receitasViewModel: ReceitasViewModel = viewModel(viewModelStoreOwner = owner)
     val uiState by receitasViewModel.uiState.collectAsState()
     var showEditDialog by remember { mutableStateOf(false) }
     var editNome by remember { mutableStateOf("") }
@@ -70,6 +76,12 @@ fun DetalheScreen(navController: NavHostController, receitaId: String?) {
             editPorcoes = (receita["porcoes"] as? Number)?.toString() ?: ""
             editIngredientes = (receita["ingredientes"] as? List<*>)?.joinToString("\n") ?: ""
             editModoPreparo = (receita["modoPreparo"] as? List<*>)?.joinToString("\n") ?: ""
+        }
+    }
+    // Coleta eventos únicos do ViewModel para exibir Snackbars
+    LaunchedEffect(Unit) {
+        receitasViewModel.eventFlow.collect { message ->
+            snackbarHostState.showSnackbar(message = message)
         }
     }
     Scaffold(
@@ -105,11 +117,7 @@ fun DetalheScreen(navController: NavHostController, receitaId: String?) {
             isLoading -> Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
             isError -> {
                 val msg = (uiState as ReceitasUiState.Error).message
-                LaunchedEffect(msg) { snackbarHostState.showSnackbar(msg) }
-            }
-            uiState is ReceitasUiState.SuccessMessage -> {
-                val msg = (uiState as ReceitasUiState.SuccessMessage).message
-                LaunchedEffect(msg) { snackbarHostState.showSnackbar(msg) }
+                LaunchedEffect(msg) { snackbarHostState.showSnackbar(message = msg) }
             }
             receita != null -> {
                 val r = receita
@@ -207,65 +215,80 @@ fun DetalheScreen(navController: NavHostController, receitaId: String?) {
                 title = { Text("Editar Receita") },
                 text = {
                     Column {
-                        Button(onClick = { imagePickerLauncher.launch("image/*") }) {
+                        Button(onClick = { imagePickerLauncher.launch("image/*") }, enabled = uiState !is ReceitasUiState.Loading) {
                             Text(if (editImagemUri == null) "Selecionar nova imagem" else "Imagem Selecionada")
                         }
                         Spacer(Modifier.height(8.dp))
                         OutlinedTextField(
                             value = editNome,
                             onValueChange = { editNome = it },
-                            label = { Text("Nome da receita") }
+                            label = { Text("Nome da receita") },
+                            enabled = uiState !is ReceitasUiState.Loading
                         )
                         OutlinedTextField(
                             value = editDescricao,
                             onValueChange = { editDescricao = it },
-                            label = { Text("Descrição curta") }
+                            label = { Text("Descrição curta") },
+                            enabled = uiState !is ReceitasUiState.Loading
                         )
                         OutlinedTextField(
                             value = editTempo,
                             onValueChange = { editTempo = it },
-                            label = { Text("Tempo de preparo") }
+                            label = { Text("Tempo de preparo") },
+                            enabled = uiState !is ReceitasUiState.Loading
                         )
                         OutlinedTextField(
                             value = editPorcoes,
                             onValueChange = { editPorcoes = it.filter { c -> c.isDigit() } },
-                            label = { Text("Porções") }
+                            label = { Text("Porções") },
+                            enabled = uiState !is ReceitasUiState.Loading
                         )
                         OutlinedTextField(
                             value = editIngredientes,
                             onValueChange = { editIngredientes = it },
                             label = { Text("Ingredientes (um por linha)") },
-                            maxLines = 4
+                            maxLines = 4,
+                            enabled = uiState !is ReceitasUiState.Loading
                         )
                         OutlinedTextField(
                             value = editModoPreparo,
                             onValueChange = { editModoPreparo = it },
                             label = { Text("Modo de preparo (um por linha)") },
-                            maxLines = 4
+                            maxLines = 4,
+                            enabled = uiState !is ReceitasUiState.Loading
                         )
                     }
                 },
                 confirmButton = {
-                    Button(onClick = {
-                        if (receita != null) {
-                            receitasViewModel.editarReceita(
-                                context = context,
-                                id = receita["id"]?.toString() ?: return@Button,
-                                nome = editNome,
-                                descricaoCurta = editDescricao,
-                                novaImagemUri = editImagemUri,
-                                ingredientes = editIngredientes.split('\n').filter { it.isNotBlank() },
-                                modoPreparo = editModoPreparo.split('\n').filter { it.isNotBlank() },
-                                tempoPreparo = editTempo,
-                                porcoes = editPorcoes.toIntOrNull() ?: 1,
-                                imagemUrlAntiga = receita["imagemUrl"] as? String
-                            )
-                            showEditDialog = false
+                    Button(
+                        onClick = {
+                            if (receita != null) {
+                                receitasViewModel.editarReceita(
+                                    context = context,
+                                    id = receita["id"]?.toString() ?: return@Button,
+                                    nome = editNome,
+                                    descricaoCurta = editDescricao,
+                                    novaImagemUri = editImagemUri,
+                                    ingredientes = editIngredientes.split('\n').filter { it.isNotBlank() },
+                                    modoPreparo = editModoPreparo.split('\n').filter { it.isNotBlank() },
+                                    tempoPreparo = editTempo,
+                                    porcoes = editPorcoes.toIntOrNull() ?: 1,
+                                    imagemUrlAntiga = receita["imagemUrl"] as? String
+                                )
+                                showEditDialog = false
+                            }
+                        },
+                        enabled = uiState !is ReceitasUiState.Loading && editNome.isNotBlank() && editDescricao.isNotBlank()
+                    ) {
+                        if (uiState is ReceitasUiState.Loading) {
+                            CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                        } else {
+                            Text("Salvar")
                         }
-                    }) { Text("Salvar") }
+                    }
                 },
                 dismissButton = {
-                    Button(onClick = { showEditDialog = false }) { Text("Cancelar") }
+                    Button(onClick = { showEditDialog = false }, enabled = uiState !is ReceitasUiState.Loading) { Text("Cancelar") }
                 }
             )
         }

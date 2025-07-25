@@ -9,13 +9,14 @@ import com.example.myapplication.data.FirebaseRepository
 import com.example.myapplication.data.SupabaseImageUploader
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 
 sealed class ReceitasUiState {
     object Loading : ReceitasUiState()
     data class Success(val receitas: List<Map<String, Any>>) : ReceitasUiState()
     data class Error(val message: String) : ReceitasUiState()
-    data class SuccessMessage(val message: String) : ReceitasUiState()
 }
 
 class ReceitasViewModel(
@@ -24,6 +25,10 @@ class ReceitasViewModel(
     private val repository = FirebaseRepository()
     private val _uiState = MutableStateFlow<ReceitasUiState>(ReceitasUiState.Loading)
     val uiState: StateFlow<ReceitasUiState> = _uiState
+
+    // Channel para eventos únicos (ex: Snackbars)
+    private val _eventChannel = Channel<String>()
+    val eventFlow = _eventChannel.receiveAsFlow()
 
     init {
         carregarReceitas()
@@ -70,7 +75,7 @@ class ReceitasViewModel(
                     userEmail = userEmail,
                     imagemUrl = imageUrl
                 )
-                _uiState.value = ReceitasUiState.SuccessMessage("Receita adicionada com sucesso!")
+                _eventChannel.send("Receita adicionada com sucesso!")
                 carregarReceitas()
             } catch (e: Exception) {
                 _uiState.value = ReceitasUiState.Error(e.message ?: "Erro desconhecido")
@@ -86,7 +91,7 @@ class ReceitasViewModel(
                     SupabaseImageUploader.deleteImageByUrl(imageUrl)
                 }
                 repository.db.child(id).removeValue()
-                _uiState.value = ReceitasUiState.SuccessMessage("Receita deletada com sucesso!")
+                _eventChannel.send("Receita deletada com sucesso!")
                 carregarReceitas()
             } catch (e: Exception) {
                 _uiState.value = ReceitasUiState.Error(e.message ?: "Erro ao deletar receita")
@@ -152,7 +157,7 @@ class ReceitasViewModel(
                     "imagemUrl" to (imageUrl ?: "")
                 )
                 repository.db.child(id).updateChildren(updateMap)
-                _uiState.value = ReceitasUiState.SuccessMessage("Receita editada com sucesso!")
+                _eventChannel.send("Receita editada com sucesso!")
                 carregarReceitas()
             } catch (e: Exception) {
                 _uiState.value = ReceitasUiState.Error(e.message ?: "Erro ao editar receita")

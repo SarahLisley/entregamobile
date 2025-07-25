@@ -67,6 +67,7 @@ import androidx.compose.foundation.background
 import androidx.compose.material.icons.filled.Delete
 import android.net.Uri
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.size
 import com.example.myapplication.data.FirebaseRepository
 import com.example.myapplication.data.SupabaseImageUploader
 import androidx.compose.runtime.collectAsState
@@ -75,6 +76,7 @@ import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.SnackbarHost
+import androidx.compose.foundation.clickable
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
@@ -82,7 +84,8 @@ fun TelaInicial(navController: NavHostController) {
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
-    val receitasViewModel: ReceitasViewModel = viewModel()
+    val navBackStackEntry = navController.getBackStackEntry(AppScreens.TelaInicialScreen.route)
+    val receitasViewModel: ReceitasViewModel = viewModel(viewModelStoreOwner = navBackStackEntry)
     val uiState by receitasViewModel.uiState.collectAsState()
     val authViewModel: AuthViewModel = viewModel()
     val usuario = authViewModel.usuarioAtual()
@@ -101,6 +104,12 @@ fun TelaInicial(navController: NavHostController) {
     }
     var receitaParaDeletar by remember { mutableStateOf<Map<String, Any>?>(null) }
     var showDeleteDialog by remember { mutableStateOf(false) }
+    // Coleta eventos únicos do ViewModel para exibir Snackbars
+    LaunchedEffect(Unit) {
+        receitasViewModel.eventFlow.collect { message ->
+            snackbarHostState.showSnackbar(message = message)
+        }
+    }
     Scaffold(
         topBar = {
             TopAppBar(
@@ -166,13 +175,7 @@ fun TelaInicial(navController: NavHostController) {
             is ReceitasUiState.Error -> {
                 val msg = (uiState as ReceitasUiState.Error).message
                 LaunchedEffect(msg) {
-                    snackbarHostState.showSnackbar(msg)
-                }
-            }
-            is ReceitasUiState.SuccessMessage -> {
-                val msg = (uiState as ReceitasUiState.SuccessMessage).message
-                LaunchedEffect(msg) {
-                    snackbarHostState.showSnackbar(msg)
+                    snackbarHostState.showSnackbar(message = msg)
                 }
             }
             is ReceitasUiState.Success -> {
@@ -222,72 +225,87 @@ fun TelaInicial(navController: NavHostController) {
                 title = { Text("Adicionar nova receita") },
                 text = {
                     Column {
-                        Button(onClick = { imagePickerLauncher.launch("image/*") }) {
+                        Button(onClick = { imagePickerLauncher.launch("image/*") }, enabled = uiState !is ReceitasUiState.Loading) {
                             Text(if (imagemUri == null) "Selecionar Imagem" else "Imagem Selecionada")
                         }
                         Spacer(Modifier.height(8.dp))
                         OutlinedTextField(
                             value = novoNome,
                             onValueChange = { novoNome = it },
-                            label = { Text("Nome da receita") }
+                            label = { Text("Nome da receita") },
+                            enabled = uiState !is ReceitasUiState.Loading
                         )
                         OutlinedTextField(
                             value = novaDescricao,
                             onValueChange = { novaDescricao = it },
-                            label = { Text("Descrição curta") }
+                            label = { Text("Descrição curta") },
+                            enabled = uiState !is ReceitasUiState.Loading
                         )
                         OutlinedTextField(
                             value = novoTempo,
                             onValueChange = { novoTempo = it },
-                            label = { Text("Tempo de preparo") }
+                            label = { Text("Tempo de preparo") },
+                            enabled = uiState !is ReceitasUiState.Loading
                         )
                         OutlinedTextField(
                             value = novasPorcoes,
                             onValueChange = { novasPorcoes = it.filter { c -> c.isDigit() } },
-                            label = { Text("Porções") }
+                            label = { Text("Porções") },
+                            enabled = uiState !is ReceitasUiState.Loading
                         )
                         OutlinedTextField(
                             value = novosIngredientes,
                             onValueChange = { novosIngredientes = it },
                             label = { Text("Ingredientes (um por linha)") },
-                            maxLines = 4
+                            maxLines = 4,
+                            enabled = uiState !is ReceitasUiState.Loading
                         )
                         OutlinedTextField(
                             value = novoModoPreparo,
                             onValueChange = { novoModoPreparo = it },
                             label = { Text("Modo de preparo (um por linha)") },
-                            maxLines = 4
+                            maxLines = 4,
+                            enabled = uiState !is ReceitasUiState.Loading
                         )
                     }
                 },
                 confirmButton = {
-                    Button(onClick = {
-                        if (novoNome.isNotBlank() && imagemUri != null) {
-                            receitasViewModel.adicionarReceita(
-                                context = context,
-                                nome = novoNome,
-                                descricaoCurta = novaDescricao,
-                                imagemUri = imagemUri,
-                                ingredientes = novosIngredientes.split('\n').filter { it.isNotBlank() },
-                                modoPreparo = novoModoPreparo.split('\n').filter { it.isNotBlank() },
-                                tempoPreparo = novoTempo,
-                                porcoes = novasPorcoes.toIntOrNull() ?: 1,
-                                userId = usuario?.uid ?: "anon",
-                                userEmail = usuario?.email ?: ""
-                            )
-                            novoNome = ""
-                            novaDescricao = ""
-                            novoTempo = ""
-                            novasPorcoes = ""
-                            novosIngredientes = ""
-                            novoModoPreparo = ""
-                            imagemUri = null
-                            showDialog = false
+                    Button(
+                        onClick = {
+                            if (novoNome.isNotBlank() && imagemUri != null) {
+                                receitasViewModel.adicionarReceita(
+                                    context = context,
+                                    nome = novoNome,
+                                    descricaoCurta = novaDescricao,
+                                    imagemUri = imagemUri,
+                                    ingredientes = novosIngredientes.split('\n').filter { it.isNotBlank() },
+                                    modoPreparo = novoModoPreparo.split('\n').filter { it.isNotBlank() },
+                                    tempoPreparo = novoTempo,
+                                    porcoes = novasPorcoes.toIntOrNull() ?: 1,
+                                    userId = usuario?.uid ?: "anon",
+                                    userEmail = usuario?.email ?: ""
+                                )
+                                novoNome = ""
+                                novaDescricao = ""
+                                novoTempo = ""
+                                novasPorcoes = ""
+                                novosIngredientes = ""
+                                novoModoPreparo = ""
+                                imagemUri = null
+                                showDialog = false
+                            }
+                        },
+                        enabled = uiState !is ReceitasUiState.Loading && novoNome.isNotBlank() && imagemUri != null
+                    ) {
+                        if (uiState is ReceitasUiState.Loading) {
+                            CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                        } else {
+                            Text("Adicionar")
                         }
-                    }) { Text("Adicionar") }
+                    }
                 },
                 dismissButton = {
-                    Button(onClick = { showDialog = false }) { Text("Cancelar") }
+                    Button(onClick = { showDialog = false }, enabled = uiState !is ReceitasUiState.Loading) { Text("Cancelar") }
                 }
             )
         }
@@ -347,7 +365,8 @@ fun ReceitaCardFirebase(
             .background(
                 color = MaterialTheme.colorScheme.surface,
                 shape = RoundedCornerShape(28.dp)
-            ),
+            )
+            .clickable { onClick() },
         shape = RoundedCornerShape(28.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
     ) {

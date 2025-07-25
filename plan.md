@@ -1,39 +1,59 @@
-# Plano: Feed de Receitas Multiusuário
+# Plano de Correção para Funcionalidades de Receita
 
-## Funcionalidade
-- A aba de receitas funciona como um feed público de receitas.
-- Usuários logados podem:
-  - Criar novas receitas (com imagem, nome, etc).
-  - Curtir receitas de qualquer usuário (ícone de curtida diferente de coração, ex: polegar para cima).
-  - Favoritar receitas de qualquer usuário (ícone de coração).
-  - Editar e deletar **apenas** as receitas que eles mesmos publicaram.
-- Receitas criadas por outros usuários só podem ser curtidas e favoritedas, não editadas ou deletadas.
-- No feed, ao lado de cada receita, deve aparecer o nome (ou email) do usuário que criou a receita.
+## Problema Identificado
 
-## Requisitos Técnicos
-- Cada receita salva no Firebase deve conter o campo `userId` e, opcionalmente, `userName` ou `userEmail` do autor.
-- O usuário logado é identificado pelo Firebase Auth.
-- O campo de curtidas pode ser um contador ou uma lista de userIds que curtiram.
-- O campo de favoritos pode ser uma lista de userIds que favoritaram.
+1.  **Navegação para Detalhes da Receita Falha:** Ao clicar em um item de receita na tela principal (`TelaInicial.kt`), o aplicativo navega para a `DetalheScreen.kt`, mas falha em exibir os dados da receita, mostrando uma mensagem de "Receita não encontrada".
+2.  **Botão de Edição Não Funciona:** O botão de edição no card da receita, na `TelaInicial.kt`, não inicia o fluxo de edição. Ele apenas navega para a tela de detalhes, que por sua vez, não funciona corretamente.
 
-## Passos de Implementação
-1. **Salvar o autor ao criar receita**
-   - Salvar `userId` e `userName`/`userEmail` junto com a receita.
-2. **Exibir autor no feed**
-   - Mostrar o nome/email do autor ao lado de cada receita.
-3. **Permitir curtir/favoritar qualquer receita**
-   - Botões de curtir (ícone diferente de coração) e favoritar (ícone de coração) disponíveis para todos.
-   - Atualizar o contador/lista no Firebase.
-4. **Permitir editar/deletar apenas receitas do usuário logado**
-   - Mostrar botões de editar/deletar apenas se `userId` da receita == usuário logado.
-5. **Impedir edição/remoção de receitas de outros usuários**
-   - Botões não aparecem para receitas de outros.
-6. **(Opcional) Exibir número de curtidas**
-   - Mostrar contador de curtidas no card da receita.
-   - **Não mostrar o número de favoritos no feed**.
+## Causa Raiz
 
-## Observações
-- O feed deve ser atualizado em tempo real.
-- O usuário deve estar logado para criar, curtir ou favoritar.
-- O fluxo de deleção deve remover a imagem do Supabase apenas se o usuário for o autor.
-- **Na tela de detalhes, remover o botão 'ouvir/ver'.**
+A causa principal de ambos os problemas é o escopo incorreto do `ReceitasViewModel` na `DetalheScreen`. A tela de detalhes está criando uma nova instância do `ViewModel` em vez de compartilhar a instância já existente da `TelaInicial`. Como resultado, a lista de receitas não está disponível na `DetalheScreen`, impedindo a localização e exibição dos dados da receita selecionada.
+
+Adicionalmente, o fluxo de edição não é ideal. O usuário espera que, ao clicar em "Editar", seja levado diretamente para a interface de edição.
+
+## Plano de Ação
+
+### 1. Corrigir o Escopo do ViewModel na `DetalheScreen`
+
+- **Arquivo a ser modificado:** `app/src/main/java/com/example/myapplication/ui/screens/DetalheScreen.kt`
+- **Ação:** Alterar a inicialização do `ReceitasViewModel` para que ele utilize o `navBackStackEntry` da `TelaInicialScreen` como seu `ViewModelStoreOwner`. Isso garantirá que a mesma instância do `ViewModel` seja compartilhada entre as telas, preservando o estado.
+
+**Código a ser alterado:**
+
+```kotlin
+// Em DetalheScreen.kt
+
+// DE:
+val owner = LocalViewModelStoreOwner.current!!
+val receitasViewModel: ReceitasViewModel = viewModel(viewModelStoreOwner = owner)
+
+// PARA:
+val navBackStackEntry = navController.getBackStackEntry(AppScreens.TelaInicialScreen.route)
+val receitasViewModel: ReceitasViewModel = viewModel(viewModelStoreOwner = navBackStackEntry)
+```
+
+### 2. Otimizar o Fluxo de Edição
+
+Para que o botão de edição leve o usuário diretamente ao modo de edição, faremos as seguintes alterações:
+
+1.  **Atualizar a Rota de Navegação (`Navigation.kt`):**
+    - Adicionar um argumento opcional `startInEditMode` à rota da `DetalheScreen`.
+    - A rota se tornará: `detalhe_receita/{receitaId}?startInEditMode={startInEditMode}`.
+    - Definir o `navArgument` correspondente com `type = NavType.BoolType` e `defaultValue = false`.
+
+2.  **Modificar a Chamada de Navegação (`TelaInicial.kt`):**
+    - Na `onClick` do `ReceitaCardFirebase`, a navegação permanecerá a mesma (sem o parâmetro de edição, ou com ele definido como `false`).
+    - Na `onEdit` do `ReceitaCardFirebase`, a navegação será atualizada para passar o argumento `startInEditMode=true`.
+    - **Exemplo:** `navController.navigate("detalhe_receita/$id?startInEditMode=true")`
+
+3.  **Ajustar a `DetalheScreen.kt`:**
+    - Ler o valor de `startInEditMode` a partir dos argumentos do `backStackEntry`.
+    - Utilizar este valor para inicializar o estado `showEditDialog`.
+
+    ```kotlin
+    // Em DetalheScreen.kt
+    val startInEditMode = backStackEntry.arguments?.getBoolean("startInEditMode") ?: false
+    var showEditDialog by remember(startInEditMode) { mutableStateOf(startInEditMode) }
+    ```
+
+Com estas alterações, o aplicativo funcionará conforme o esperado: o clique em uma receita levará aos seus detalhes, e o botão de editar abrirá diretamente a interface de edição na tela de detalhes.

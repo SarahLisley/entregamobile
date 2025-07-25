@@ -18,19 +18,24 @@ import com.example.myapplication.ui.components.BottomNavigationBar
 import com.example.myapplication.data.FirebaseRepository
 import kotlinx.coroutines.launch
 import coil.compose.AsyncImage
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.myapplication.ui.screens.ReceitasViewModel
+import com.example.myapplication.ui.screens.ReceitasUiState
+import com.example.myapplication.ui.screens.AuthViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FavoritosScreen(navController: NavHostController) {
-    val firebaseRepository = remember { FirebaseRepository() }
-    var favoritos by remember { mutableStateOf<List<Map<String, Any>>>(emptyList()) }
-    val scope = rememberCoroutineScope()
+    val navBackStackEntry = navController.getBackStackEntry(AppScreens.TelaInicialScreen.route)
+    val receitasViewModel: ReceitasViewModel = viewModel(viewModelStoreOwner = navBackStackEntry)
+    val authViewModel: AuthViewModel = viewModel()
+    val uiState by receitasViewModel.uiState.collectAsState()
+    val currentUser = authViewModel.usuarioAtual()
+    val snackbarHostState = remember { SnackbarHostState() }
+    // Coleta eventos únicos do ViewModel para exibir Snackbars
     LaunchedEffect(Unit) {
-        firebaseRepository.escutarReceitas { data ->
-            favoritos = data?.values?.mapNotNull {
-                val receita = it as? Map<String, Any>
-                if (receita != null && (receita["isFavorita"] as? Boolean == true)) receita else null
-            } ?: emptyList()
+        receitasViewModel.eventFlow.collect { message ->
+            snackbarHostState.showSnackbar(message)
         }
     }
     Scaffold(
@@ -49,39 +54,64 @@ fun FavoritosScreen(navController: NavHostController) {
                 }
             )
         },
-        bottomBar = { BottomNavigationBar(navController = navController) }
+        bottomBar = { BottomNavigationBar(navController = navController) },
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { paddingValues ->
-        if (favoritos.isEmpty()) {
-            Box(modifier = Modifier.fillMaxSize().padding(paddingValues), contentAlignment = Alignment.Center) {
-                Text("Nenhuma receita favorita adicionada ainda.")
+        when(val state = uiState) {
+            is ReceitasUiState.Loading -> {
+                Box(modifier = Modifier.fillMaxSize().padding(paddingValues), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
             }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .padding(8.dp)
-            ) {
-                items(favoritos) { receita ->
-                    Card(modifier = Modifier.fillMaxWidth().clickable {
-                        val id = receita["id"]?.toString() ?: ""
-                        navController.navigate(AppScreens.DetalheScreen.createRoute(id))
-                    }, elevation = CardDefaults.cardElevation(4.dp)) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            val imagemUrl = receita["imagemUrl"] as? String ?: ""
-                            if (imagemUrl.isNotBlank()) {
-                                AsyncImage(
-                                    model = imagemUrl,
-                                    contentDescription = receita["nome"] as? String ?: "",
-                                    modifier = Modifier.fillMaxWidth().height(120.dp)
-                                )
+            is ReceitasUiState.Success -> {
+                val favoritos = state.receitas.filter {
+                    val favList = it["favoritos"] as? List<String> ?: emptyList()
+                    currentUser != null && favList.contains(currentUser.uid)
+                }
+                if (favoritos.isEmpty()) {
+                    Box(modifier = Modifier.fillMaxSize().padding(paddingValues), contentAlignment = Alignment.Center) {
+                        Text("Nenhuma receita favorita adicionada ainda.")
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(paddingValues)
+                            .padding(8.dp)
+                    ) {
+                        items(favoritos) { receita ->
+                            Card(modifier = Modifier.fillMaxWidth().clickable {
+                                val id = receita["id"]?.toString() ?: ""
+                                navController.navigate(AppScreens.DetalheScreen.createRoute(id))
+                            }, elevation = CardDefaults.cardElevation(4.dp)) {
+                                Column(modifier = Modifier.padding(16.dp)) {
+                                    val imagemUrl = receita["imagemUrl"] as? String ?: ""
+                                    if (imagemUrl.isNotBlank()) {
+                                        AsyncImage(
+                                            model = imagemUrl,
+                                            contentDescription = receita["nome"] as? String ?: "",
+                                            modifier = Modifier.fillMaxWidth().height(120.dp)
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(text = receita["nome"] as? String ?: "", style = MaterialTheme.typography.headlineLarge)
+                                    Text(text = receita["descricaoCurta"] as? String ?: "", style = MaterialTheme.typography.bodyMedium)
+                                }
                             }
                             Spacer(modifier = Modifier.height(8.dp))
-                            Text(text = receita["nome"] as? String ?: "", style = MaterialTheme.typography.headlineLarge)
-                            Text(text = receita["descricaoCurta"] as? String ?: "", style = MaterialTheme.typography.bodyMedium)
                         }
                     }
-                    Spacer(modifier = Modifier.height(8.dp))
+                }
+            }
+            is ReceitasUiState.Error -> {
+                val msg = (state as ReceitasUiState.Error).message
+                Box(modifier = Modifier.fillMaxSize().padding(paddingValues), contentAlignment = Alignment.Center) {
+                    Text(msg)
+                }
+            }
+            else -> {
+                Box(modifier = Modifier.fillMaxSize().padding(paddingValues), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
                 }
             }
         }
