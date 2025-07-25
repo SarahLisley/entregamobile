@@ -69,7 +69,7 @@ dependencies {
     implementation(platform(libs.androidx.compose.bom))
     implementation(platform(libs.firebase.bom))
 
-    // Guava (Necessário para ListenableFuture do CameraX)
+    // Guava
     implementation(libs.guava)
 
     // AndroidX e Jetpack (dependências individuais)
@@ -83,7 +83,6 @@ dependencies {
     // Bundles (Grupos de bibliotecas do libs.versions.toml)
     implementation(libs.bundles.compose)
     implementation(libs.bundles.room)
-    implementation(libs.bundles.camera)
     implementation(libs.bundles.firebase)
 
     // Processador de Anotações (Kapt) para o Room
