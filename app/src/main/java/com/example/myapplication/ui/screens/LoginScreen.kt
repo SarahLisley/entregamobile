@@ -71,7 +71,7 @@ fun LoginScreen(
                             value = cadastroEmail,
                             onValueChange = { cadastroEmail = it },
                             label = { Text("E-mail") },
-                            leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
+                            leadingIcon = { Icon(Icons.Filled.Email, contentDescription = null) },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
@@ -81,7 +81,7 @@ fun LoginScreen(
                             value = cadastroSenha,
                             onValueChange = { cadastroSenha = it },
                             label = { Text("Senha") },
-                            leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
+                            leadingIcon = { Icon(Icons.Filled.Lock, contentDescription = null) },
                             singleLine = true,
                             visualTransformation = PasswordVisualTransformation(),
                             modifier = Modifier.fillMaxWidth(),
@@ -141,7 +141,7 @@ fun LoginScreen(
                     value = email,
                     onValueChange = { email = it },
                     label = { Text("E-mail") },
-                    leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
+                    leadingIcon = { Icon(Icons.Filled.Email, contentDescription = null) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
@@ -151,11 +151,11 @@ fun LoginScreen(
                     value = senha,
                     onValueChange = { senha = it },
                     label = { Text("Senha") },
-                    leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
+                    leadingIcon = { Icon(Icons.Filled.Lock, contentDescription = null) },
                     trailingIcon = {
                         IconButton(onClick = { senhaVisivel = !senhaVisivel }) {
                             Icon(
-                                imageVector = if (senhaVisivel) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                imageVector = if (senhaVisivel) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
                                 contentDescription = if (senhaVisivel) "Ocultar senha" else "Mostrar senha"
                             )
                         }

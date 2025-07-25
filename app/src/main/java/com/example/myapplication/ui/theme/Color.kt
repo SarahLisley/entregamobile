@@ -1,37 +1,18 @@
 package com.example.myapplication.ui.theme
 
 import androidx.compose.ui.graphics.Color
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
 
-val GreenLight = Color(0xFFEAF8EE) // Fundo
-val GreenMedium = Color(0xFF6FCF97) // Destaques
-val GreenCard = Color(0xFFF6FBF7) // Card
-val OrangeFav = Color(0xFFFF8A65) // Favoritos
-val GrayText = Color(0xFF333333) // Títulos
-val GrayDesc = Color(0xFF757575) // Descrições
+// Paleta Principal para o tema "NutriLivre"
+val GreenPrimary = Color(0xFF6FCF97) // Verde principal para botões e destaques
+val OrangeSecondary = Color(0xFFFF8A65) // Laranja/Pêssego para favoritos e ações secundárias
+val TextPrimary = Color(0xFF1A1C19) // Texto principal escuro
+val TextSecondary = Color(0xFF757575) // Texto secundário/descrições
+val BackgroundLight = Color(0xFFF6FBF7) // Fundo muito claro, quase branco com um toque de verde
+val SurfaceLight = Color(0xFFFFFFFF) // Cor dos cards no modo claro
+
+val TextOnDark = Color(0xFFE6E1E5) // Texto principal claro para fundos escuros
+val BackgroundDark = Color(0xFF121212) // Fundo escuro padrão do Material Design
+val SurfaceDark = Color(0xFF1E1E1E) // Cor dos cards no modo escuro
+
+// Cores legadas
 val White = Color(0xFFFFFFFF)
-
-val LightColors = lightColorScheme(
-    primary   = GreenMedium,
-    secondary = OrangeFav,
-    background= GreenLight,
-    surface   = GreenCard,
-    onPrimary = White,
-    onSecondary = White,
-    onBackground = GrayText,
-    onSurface = GrayText,
-    tertiary = GreenMedium,
-)
-
-val DarkColors = darkColorScheme(
-    primary   = GreenMedium,
-    secondary = OrangeFav,
-    background= Color(0xFF181A20),
-    surface   = Color(0xFF23272F),
-    onPrimary = White,
-    onSecondary = White,
-    onBackground = Color(0xFFE6E1E5),
-    onSurface = Color(0xFFE6E1E5),
-    tertiary = GreenMedium,
-)

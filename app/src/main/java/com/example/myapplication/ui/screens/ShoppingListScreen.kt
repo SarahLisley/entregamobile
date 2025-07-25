@@ -46,7 +46,7 @@ fun ShoppingListScreen(viewModel: ShoppingListViewModel = viewModel()) {
                 itemToEdit = null // Define como nulo para indicar o modo "Adicionar"
                 showDialog = true
             }) {
-                Icon(Icons.Default.Add, contentDescription = "Adicionar Item")
+                Icon(Icons.Filled.Add, contentDescription = "Adicionar Item")
             }
         }
     ) { paddingValues ->
@@ -130,7 +130,7 @@ private fun ShoppingListItem(
                 contentAlignment = Alignment.CenterEnd
             ) {
                 Icon(
-                    Icons.Default.Delete,
+                    Icons.Filled.Delete,
                     contentDescription = "Excluir",
                     modifier = Modifier.scale(scale),
                     tint = Color.White

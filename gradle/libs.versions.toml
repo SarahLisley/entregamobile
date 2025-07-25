@@ -25,6 +25,7 @@ firebaseBom = "33.1.1"
 # Bibliotecas de Terceiros
 gson = "2.10.1"
 okhttp = "4.12.0"
+retrofit = "2.9.0"
 coil = "2.6.0"
 guava = "33.2.1-android"
 
@@ -66,6 +67,8 @@ play-services-location = { group = "com.google.android.gms", name = "play-servic
 # Networking
 gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
 okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
+retrofit = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
+retrofit-converter-gson = { group = "com.squareup.retrofit2", name = "converter-gson", version.ref = "retrofit" }
 
 # Outros
 coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }

@@ -5,8 +5,10 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.myapplication.ui.screens.*
-import androidx.compose.material3.Text // <- Importa o Text correto do Material3
+import androidx.compose.material3.Text
 import com.example.myapplication.ui.screens.ConfiguracoesScreen
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
 
 // Rotas nomeadas
 sealed class AppScreens(val route: String) {
@@ -17,9 +19,16 @@ sealed class AppScreens(val route: String) {
     object BuscaScreen : AppScreens("busca")
     object ShoppingListScreen : AppScreens("shopping_list")
 
-    object DetalheScreen : AppScreens("detalhe_receita/{receitaId}") {
-        fun createRoute(receitaId: String?): String {
-            return "detalhe_receita/$receitaId"
+    object DetalheScreen {
+        const val routeWithArgs = "detalhe_receita/{receitaId}?startInEditMode={startInEditMode}"
+        const val route = "detalhe_receita"
+        val arguments = listOf(
+            navArgument("receitaId") { type = NavType.StringType; nullable = true },
+            navArgument("startInEditMode") { type = NavType.BoolType; defaultValue = false }
+        )
+
+        fun createRoute(receitaId: String?, startInEditMode: Boolean = false): String {
+            return "$route/$receitaId?startInEditMode=$startInEditMode"
         }
     }
 }
@@ -50,9 +59,12 @@ fun AppNavigation() {
         composable(AppScreens.ShoppingListScreen.route) {
             ShoppingListScreen()
         }
-        composable(AppScreens.DetalheScreen.route) { backStackEntry ->
+        composable(
+            route = AppScreens.DetalheScreen.routeWithArgs,
+            arguments = AppScreens.DetalheScreen.arguments
+        ) { backStackEntry ->
             val receitaId = backStackEntry.arguments?.getString("receitaId")
-            DetalheScreen(navController = navController, receitaId = receitaId)
+            DetalheScreen(navController = navController, receitaId = receitaId, backStackEntry = backStackEntry)
         }
     }
 }

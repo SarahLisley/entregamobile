@@ -7,6 +7,8 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.myapplication.data.FirebaseRepository
 import com.example.myapplication.data.SupabaseImageUploader
+import com.example.myapplication.data.NutritionRepository
+import com.example.myapplication.model.RecipeNutrition
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
@@ -23,12 +25,17 @@ class ReceitasViewModel(
     private val app: Application
 ) : AndroidViewModel(app) {
     private val repository = FirebaseRepository()
+    private val nutritionRepository = NutritionRepository()
     private val _uiState = MutableStateFlow<ReceitasUiState>(ReceitasUiState.Loading)
     val uiState: StateFlow<ReceitasUiState> = _uiState
 
     // Channel para eventos únicos (ex: Snackbars)
     private val _eventChannel = Channel<String>()
     val eventFlow = _eventChannel.receiveAsFlow()
+    
+    // Estado para informações nutricionais
+    private val _nutritionState = MutableStateFlow<RecipeNutrition?>(null)
+    val nutritionState: StateFlow<RecipeNutrition?> = _nutritionState
 
     init {
         carregarReceitas()
@@ -163,5 +170,32 @@ class ReceitasViewModel(
                 _uiState.value = ReceitasUiState.Error(e.message ?: "Erro ao editar receita")
             }
         }
+    }
+    
+    // Função para buscar informações nutricionais de uma receita
+    fun buscarInformacoesNutricionais(recipeTitle: String) {
+        viewModelScope.launch {
+            try {
+                val result = nutritionRepository.getNutritionInfo(recipeTitle)
+                result.fold(
+                    onSuccess = { nutrition ->
+                        _nutritionState.value = nutrition
+                        _eventChannel.send("Informações nutricionais carregadas!")
+                    },
+                    onFailure = { exception ->
+                        _nutritionState.value = null
+                        _eventChannel.send("Erro ao carregar informações nutricionais: ${exception.message}")
+                    }
+                )
+            } catch (e: Exception) {
+                _nutritionState.value = null
+                _eventChannel.send("Erro ao buscar informações nutricionais: ${e.message}")
+            }
+        }
+    }
+    
+    // Função para limpar informações nutricionais
+    fun limparInformacoesNutricionais() {
+        _nutritionState.value = null
     }
 }

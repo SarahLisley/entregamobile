@@ -100,9 +100,12 @@ fun MainNav() {
                 ConfiguracoesScreen(onBack = { navController.popBackStack() })
             }
         }
-        composable(AppScreens.DetalheScreen.route) { backStackEntry ->
+        composable(
+            route = AppScreens.DetalheScreen.routeWithArgs,
+            arguments = AppScreens.DetalheScreen.arguments
+        ) { backStackEntry ->
             val receitaId = backStackEntry.arguments?.getString("receitaId")
-            DetalheScreen(navController = navController, receitaId = receitaId)
+            DetalheScreen(navController = navController, receitaId = receitaId, backStackEntry = backStackEntry)
         }
         // Demais rotas técnicas podem ser acessadas a partir das telas principais
     }

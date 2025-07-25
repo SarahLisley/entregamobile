@@ -80,24 +80,28 @@ fun FavoritosScreen(navController: NavHostController) {
                             .padding(8.dp)
                     ) {
                         items(favoritos) { receita ->
-                            Card(modifier = Modifier.fillMaxWidth().clickable {
-                                val id = receita["id"]?.toString() ?: ""
-                                navController.navigate(AppScreens.DetalheScreen.createRoute(id))
-                            }, elevation = CardDefaults.cardElevation(4.dp)) {
-                                Column(modifier = Modifier.padding(16.dp)) {
-                                    val imagemUrl = receita["imagemUrl"] as? String ?: ""
-                                    if (imagemUrl.isNotBlank()) {
-                                        AsyncImage(
-                                            model = imagemUrl,
-                                            contentDescription = receita["nome"] as? String ?: "",
-                                            modifier = Modifier.fillMaxWidth().height(120.dp)
-                                        )
-                                    }
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    Text(text = receita["nome"] as? String ?: "", style = MaterialTheme.typography.headlineLarge)
-                                    Text(text = receita["descricaoCurta"] as? String ?: "", style = MaterialTheme.typography.bodyMedium)
+                            ReceitaCardFirebase(
+                                receita = receita,
+                                onClick = {
+                                    val id = receita["id"]?.toString()
+                                    navController.navigate(AppScreens.DetalheScreen.createRoute(id))
+                                },
+                                onEdit = {
+                                    val id = receita["id"]?.toString()
+                                    navController.navigate(AppScreens.DetalheScreen.createRoute(id, startInEditMode = true))
+                                },
+                                onDelete = {
+                                    val id = receita["id"]?.toString() ?: return@ReceitaCardFirebase
+                                    val imagemUrl = receita["imagemUrl"] as? String
+                                    receitasViewModel.deletarReceita(id, imagemUrl)
+                                },
+                                onCurtir = { id, userId, curtidas ->
+                                    receitasViewModel.curtirReceita(id, userId, curtidas)
+                                },
+                                onFavoritar = { id, userId, favoritos ->
+                                    receitasViewModel.favoritarReceita(id, userId, favoritos)
                                 }
-                            }
+                            )
                             Spacer(modifier = Modifier.height(8.dp))
                         }
                     }

@@ -3,6 +3,7 @@
 package com.example.myapplication.ui.screens
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -40,6 +41,10 @@ import com.example.myapplication.notifications.NotificationHelper
 import com.example.myapplication.data.FirebaseRepository
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.*
+import android.widget.Toast
+import android.content.Intent
+import android.provider.Settings
+import androidx.compose.material3.TextButton
 
 @Composable
 fun ConfiguracoesScreen(
@@ -56,6 +61,7 @@ fun ConfiguracoesScreen(
     var showReceitaDialog by remember { mutableStateOf(false) }
     var receitaSelecionada by remember { mutableStateOf<Map<String, Any>?>(null) }
     var showTimePicker by remember { mutableStateOf(false) }
+    var showPermissionDialog by remember { mutableStateOf(false) }
     val darkMode by viewModel.isDarkModeEnabled.collectAsState()
 
     LaunchedEffect(Unit) {
@@ -88,11 +94,43 @@ fun ConfiguracoesScreen(
                 onCheckedChange = viewModel::setDarkMode
             )
             Spacer(modifier = Modifier.height(32.dp))
-            Button(onClick = { showReceitaDialog = true }, modifier = Modifier.padding(top = 8.dp)) {
+            Button(onClick = { 
+                if (NotificationHelper.hasExactAlarmPermission(context)) {
+                    showReceitaDialog = true
+                } else {
+                    showPermissionDialog = true
+                }
+            }, modifier = Modifier.padding(top = 8.dp)) {
                 Icon(Icons.Filled.Notifications, contentDescription = "Agendar lembrete")
                 Spacer(Modifier.width(8.dp))
                 Text("Escolher Receita e Horário")
             }
+            
+            // Diálogo de permissão
+            if (showPermissionDialog) {
+                AlertDialog(
+                    onDismissRequest = { showPermissionDialog = false },
+                    title = { Text("Permissão Necessária") },
+                    text = { 
+                        Text("Para agendar lembretes, o app precisa de permissão para agendar alarmas exatos. Por favor, vá para as configurações do sistema e conceda essa permissão.")
+                    },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
+                            context.startActivity(intent)
+                            showPermissionDialog = false
+                        }) {
+                            Text("Ir para Configurações")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showPermissionDialog = false }) {
+                            Text("Cancelar")
+                        }
+                    }
+                )
+            }
+            
             if (showReceitaDialog) {
                 AlertDialog(
                     onDismissRequest = { showReceitaDialog = false },
@@ -139,12 +177,18 @@ fun ConfiguracoesScreen(
                             set(Calendar.SECOND, 0)
                             set(Calendar.MILLISECOND, 0)
                         }
-                        NotificationHelper.scheduleReminder(
+                        val success = NotificationHelper.scheduleReminder(
                             context = context,
                             itemId = receitaSelecionada!!["id"].toString(),
                             title = receitaSelecionada!!["nome"] as? String ?: "",
                             timeInMillis = calendar.timeInMillis
                         )
+                        
+                        if (success) {
+                            Toast.makeText(context, "Lembrete agendado com sucesso!", Toast.LENGTH_SHORT).show()
+                        } else {
+                            Toast.makeText(context, "Erro ao agendar lembrete. Verifique as permissões do app.", Toast.LENGTH_LONG).show()
+                        }
                         showTimePicker = false
                     },
                     now.get(Calendar.HOUR_OF_DAY),

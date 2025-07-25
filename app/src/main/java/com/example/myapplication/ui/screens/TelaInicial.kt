@@ -68,6 +68,7 @@ import androidx.compose.material.icons.filled.Delete
 import android.net.Uri
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import com.example.myapplication.data.FirebaseRepository
 import com.example.myapplication.data.SupabaseImageUploader
 import androidx.compose.runtime.collectAsState
@@ -198,10 +199,14 @@ fun TelaInicial(navController: NavHostController) {
                                 ReceitaCardFirebase(
                                     receita = receita,
                                     onClick = {
-                                        val id = receita["id"]?.toString() ?: ""
+                                        val id = receita["id"]?.toString()
                                         navController.navigate(AppScreens.DetalheScreen.createRoute(id))
                                     },
-                                    onEdit = {}, // edição não implementada
+                                    onEdit = {
+                                        val id = receita["id"]?.toString()
+                                        // NAVEGAÇÃO PARA EDIÇÃO: Passa o argumento `startInEditMode=true`
+                                        navController.navigate(AppScreens.DetalheScreen.createRoute(id, startInEditMode = true))
+                                    },
                                     onDelete = {
                                         receitaParaDeletar = receita
                                         showDeleteDialog = true
@@ -337,164 +342,121 @@ fun TelaInicial(navController: NavHostController) {
 fun ReceitaCardFirebase(
     receita: Map<String, Any>,
     onClick: () -> Unit,
-    onEdit: () -> Unit = {},
-    onDelete: () -> Unit = {},
-    onCurtir: (id: String, userId: String, curtidas: List<String>) -> Unit = { _, _, _ -> },
-    onFavoritar: (id: String, userId: String, favoritos: List<String>) -> Unit = { _, _, _ -> }
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+    onCurtir: (id: String, userId: String, curtidas: List<String>) -> Unit,
+    onFavoritar: (id: String, userId: String, favoritos: List<String>) -> Unit
 ) {
-    val firebaseRepository = remember { FirebaseRepository() }
     val authViewModel: AuthViewModel = viewModel()
     val usuario = authViewModel.usuarioAtual()
-    val isUsuarioLogado = usuario != null
     val userId = usuario?.uid ?: "anon"
+
     val favoritos = receita["favoritos"] as? List<String> ?: emptyList()
     val curtidas = receita["curtidas"] as? List<String> ?: emptyList()
-    var isFavorite by remember { mutableStateOf(favoritos.contains(userId)) }
-    var isLiked by remember { mutableStateOf(curtidas.contains(userId)) }
-    val qtdCurtidas = curtidas.size
-    val qtdFavoritos = favoritos.size
+
+    val isFavorited by remember(favoritos) { mutableStateOf(favoritos.contains(userId)) }
+    val isLiked by remember(curtidas) { mutableStateOf(curtidas.contains(userId)) }
+    
     val scope = rememberCoroutineScope()
-    var likeScale by remember { mutableStateOf(1f) }
-    var favScale by remember { mutableStateOf(1f) }
-    val animatedLikeScale by animateFloatAsState(targetValue = likeScale, animationSpec = spring())
-    val animatedFavScale by animateFloatAsState(targetValue = favScale, animationSpec = spring())
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 10.dp, horizontal = 8.dp)
-            .background(
-                color = MaterialTheme.colorScheme.surface,
-                shape = RoundedCornerShape(28.dp)
-            )
-            .clickable { onClick() },
-        shape = RoundedCornerShape(28.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
-        Column(modifier = Modifier.padding(18.dp)) {
+        Column {
             val imagemUrl = receita["imagemUrl"] as? String ?: ""
             if (imagemUrl.isNotBlank()) {
                 AsyncImage(
                     model = imagemUrl,
-                    contentDescription = receita["nome"] as? String ?: "",
+                    contentDescription = receita["nome"] as? String,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(180.dp)
-                        .clip(RoundedCornerShape(24.dp))
                 )
             }
-            Spacer(Modifier.height(12.dp))
-            Text(
-                text = receita["nome"] as? String ?: "",
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Spacer(Modifier.height(4.dp))
-            Text(
-                text = receita["descricaoCurta"] as? String ?: "",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-            )
-            Spacer(Modifier.height(8.dp))
-            // Badge de kcal (se existir)
-            val kcal = receita["kcal"] as? String
-            if (!kcal.isNullOrBlank()) {
-                Box(
-                    modifier = Modifier
-                        .background(
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                            shape = RoundedCornerShape(16.dp)
-                        )
-                        .padding(horizontal = 12.dp, vertical = 4.dp)
+
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    text = receita["nome"] as? String ?: "Receita sem nome",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = receita["descricaoCurta"] as? String ?: "",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                    maxLines = 2
+                )
+                Spacer(Modifier.height(12.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "$kcal kcal",
-                        color = MaterialTheme.colorScheme.primary,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-            }
-            Spacer(Modifier.height(8.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.padding(end = 8.dp)) {
-                    val autor = receita["userEmail"] as? String ?: ""
-                    if (autor.isNotBlank()) {
-                        Text(
-                            text = "por $autor",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Filled.ThumbUp,
-                            contentDescription = "Curtidas",
-                            tint = MaterialTheme.colorScheme.secondary,
-                            modifier = Modifier.padding(end = 2.dp)
-                        )
-                        Text("$qtdCurtidas", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.secondary)
-                    }
-                }
-                Row {
-                    IconButton(
-                        onClick = {
-                            if (!isUsuarioLogado) return@IconButton
-                            val id = receita["id"]?.toString() ?: return@IconButton
-                            val newLike = !isLiked
-                            isLiked = newLike
-                            likeScale = 1.2f
-                            scope.launch {
-                                onCurtir(id, userId, curtidas)
-                                likeScale = 1f
-                            }
-                        },
-                        enabled = isUsuarioLogado,
-                        modifier = Modifier.scale(animatedLikeScale)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.ThumbUp,
-                            contentDescription = if (isLiked) "Descurtir" else "Curtir",
-                            tint = MaterialTheme.colorScheme.secondary
-                        )
-                    }
-                    IconButton(
-                        onClick = {
-                            if (!isUsuarioLogado) return@IconButton
-                            val id = receita["id"]?.toString() ?: return@IconButton
-                            val newFav = !isFavorite
-                            isFavorite = newFav
-                            favScale = 1.2f
-                            scope.launch {
-                                onFavoritar(id, userId, favoritos)
-                                favScale = 1f
-                            }
-                        },
-                        enabled = isUsuarioLogado,
-                        modifier = Modifier.scale(animatedFavScale)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.Favorite,
-                            contentDescription = if (isFavorite) "Desfavoritar" else "Favoritar",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                    val autorId = receita["userId"] as? String ?: ""
-                    if (autorId == userId) {
-                        IconButton(onClick = { onEdit() }) {
-                            Icon(
-                                imageVector = Icons.Filled.Edit,
-                                contentDescription = "Editar receita"
+                    // Autor e Curtidas
+                    Column {
+                        val autor = receita["userEmail"] as? String
+                        if (!autor.isNullOrBlank()) {
+                            Text(
+                                text = "por $autor",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.primary
                             )
                         }
-                        IconButton(onClick = { onDelete() }) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
-                                imageVector = Icons.Filled.Delete,
-                                contentDescription = "Deletar receita"
+                                imageVector = Icons.Filled.ThumbUp,
+                                contentDescription = "Curtidas",
+                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                                modifier = Modifier.size(16.dp)
                             )
+                            Spacer(Modifier.width(4.dp))
+                            Text(
+                                text = "${curtidas.size}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                            )
+                        }
+                    }
+
+                    // Botões de Ação
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (usuario != null) {
+                            IconButton(onClick = {
+                                onCurtir(receita["id"].toString(), userId, curtidas)
+                            }) {
+                                Icon(
+                                    imageVector = Icons.Filled.ThumbUp,
+                                    contentDescription = "Curtir",
+                                    tint = if (isLiked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                                )
+                            }
+                            IconButton(onClick = {
+                                onFavoritar(receita["id"].toString(), userId, favoritos)
+                            }) {
+                                Icon(
+                                    imageVector = if (isFavorited) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                                    contentDescription = "Favoritar",
+                                    tint = if (isFavorited) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                                )
+                            }
+                        }
+
+                        // Ações do proprietário da receita
+                        if (usuario?.uid == receita["userId"] as? String) {
+                            IconButton(onClick = onEdit) {
+                                Icon(Icons.Filled.Edit, contentDescription = "Editar")
+                            }
+                            IconButton(onClick = onDelete) {
+                                Icon(Icons.Filled.Delete, contentDescription = "Deletar")
+                            }
                         }
                     }
                 }

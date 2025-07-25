@@ -1,59 +1,52 @@
 package com.example.myapplication.ui.screens
 
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import androidx.navigation.NavHostController
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.myapplication.navigation.AppScreens
-import coil.compose.AsyncImage
-import com.example.myapplication.data.FirebaseRepository
-import com.example.myapplication.data.SupabaseImageUploader
-import com.example.myapplication.ui.components.BottomNavigationBar
-import com.example.myapplication.ui.screens.ReceitasViewModel
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import okhttp3.OkHttpClient
-import okhttp3.Request
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.draw.clip
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.runtime.collectAsState
-import androidx.compose.material3.SnackbarHostState
-import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
-import com.example.myapplication.ui.screens.ReceitasUiState
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavBackStackEntry
+import androidx.navigation.NavHostController
+import coil.compose.AsyncImage
+import com.example.myapplication.navigation.AppScreens
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DetalheScreen(navController: NavHostController, receitaId: String?) {
+fun DetalheScreen(
+    navController: NavHostController,
+    receitaId: String?,
+    backStackEntry: NavBackStackEntry // Recebe o backStackEntry para ler os argumentos
+) {
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
-    val owner = LocalViewModelStoreOwner.current
-    if (owner == null) {
-        Text("Erro interno: ViewModelStoreOwner não encontrado.")
-        return
-    }
-    val receitasViewModel: ReceitasViewModel = viewModel(viewModelStoreOwner = owner)
+
+    // CORREÇÃO: Compartilha o ViewModel com a TelaInicial
+    val navBackStackEntry = navController.getBackStackEntry(AppScreens.TelaInicialScreen.route)
+    val receitasViewModel: ReceitasViewModel = viewModel(viewModelStoreOwner = navBackStackEntry)
+
     val uiState by receitasViewModel.uiState.collectAsState()
-    var showEditDialog by remember { mutableStateOf(false) }
+
+    // LÓGICA DE EDIÇÃO: Lê o argumento de navegação
+    val startInEditMode = backStackEntry.arguments?.getBoolean("startInEditMode") ?: false
+    var showEditDialog by remember(startInEditMode) { mutableStateOf(startInEditMode) }
+
     var editNome by remember { mutableStateOf("") }
     var editDescricao by remember { mutableStateOf("") }
     var editTempo by remember { mutableStateOf("") }
@@ -64,11 +57,15 @@ fun DetalheScreen(navController: NavHostController, receitaId: String?) {
     val imagePickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         if (uri != null) editImagemUri = uri
     }
-    // Buscar receita pelo id no estado do ViewModel
+
     val receita = (uiState as? ReceitasUiState.Success)?.receitas?.find { it["id"]?.toString() == receitaId }
     val isLoading = uiState is ReceitasUiState.Loading
     val isError = uiState is ReceitasUiState.Error
-    LaunchedEffect(receitaId, uiState) {
+    
+    // Estado das informações nutricionais
+    val nutritionState by receitasViewModel.nutritionState.collectAsState()
+
+    LaunchedEffect(receita, showEditDialog) {
         if (receita != null && showEditDialog) {
             editNome = receita["nome"] as? String ?: ""
             editDescricao = receita["descricaoCurta"] as? String ?: ""
@@ -76,126 +73,157 @@ fun DetalheScreen(navController: NavHostController, receitaId: String?) {
             editPorcoes = (receita["porcoes"] as? Number)?.toString() ?: ""
             editIngredientes = (receita["ingredientes"] as? List<*>)?.joinToString("\n") ?: ""
             editModoPreparo = (receita["modoPreparo"] as? List<*>)?.joinToString("\n") ?: ""
+            editImagemUri = null // Reseta a imagem ao abrir o diálogo
         }
     }
-    // Coleta eventos únicos do ViewModel para exibir Snackbars
+
     LaunchedEffect(Unit) {
         receitasViewModel.eventFlow.collect { message ->
             snackbarHostState.showSnackbar(message = message)
         }
     }
+    
+    // Limpar informações nutricionais ao sair da tela
+    DisposableEffect(Unit) {
+        onDispose {
+            receitasViewModel.limparInformacoesNutricionais()
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Detalhes") },
+                title = { Text(receita?.get("nome") as? String ?: "Detalhes") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.Filled.ArrowBack, contentDescription = "Voltar")
                     }
                 },
                 actions = {
-                    IconButton(onClick = { showEditDialog = true }) {
-                        Icon(Icons.Filled.Edit, contentDescription = "Editar")
-                    }
-                    IconButton(onClick = {
-                        if (receita != null) {
+                    if (receita != null) {
+                        IconButton(onClick = { 
+                            val nomeReceita = receita["nome"] as? String ?: return@IconButton
+                            receitasViewModel.buscarInformacoesNutricionais(nomeReceita)
+                        }) {
+                            Icon(Icons.Filled.Info, contentDescription = "Informações Nutricionais")
+                        }
+                        IconButton(onClick = { showEditDialog = true }) {
+                            Icon(Icons.Filled.Edit, contentDescription = "Editar")
+                        }
+                        IconButton(onClick = {
                             val id = receita["id"]?.toString() ?: return@IconButton
-                            val imagemUrl = receita["imagemUrl"] as? String ?: ""
+                            val imagemUrl = receita["imagemUrl"] as? String
                             receitasViewModel.deletarReceita(id, imagemUrl)
                             navController.popBackStack()
+                        }) {
+                            Icon(Icons.Filled.Delete, contentDescription = "Deletar")
                         }
-                    }) {
-                        Icon(Icons.Filled.Delete, contentDescription = "Deletar")
                     }
                 }
             )
         },
-        bottomBar = { BottomNavigationBar(navController = navController) },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { paddingValues ->
         when {
-            isLoading -> Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+            isLoading && receita == null -> Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
             isError -> {
                 val msg = (uiState as ReceitasUiState.Error).message
-                LaunchedEffect(msg) { snackbarHostState.showSnackbar(message = msg) }
+                Box(modifier = Modifier.fillMaxSize().padding(paddingValues), contentAlignment = Alignment.Center) {
+                    Text("Erro ao carregar: $msg")
+                }
             }
             receita != null -> {
-                val r = receita
                 Column(
                     modifier = Modifier
                         .padding(paddingValues)
                         .padding(16.dp)
                         .fillMaxSize()
                 ) {
-                    val imagemUrl = r["imagemUrl"] as? String ?: ""
+                    val imagemUrl = receita["imagemUrl"] as? String ?: ""
                     if (imagemUrl.isNotBlank()) {
                         AsyncImage(
                             model = imagemUrl,
-                            contentDescription = r["nome"] as? String ?: "",
+                            contentDescription = receita["nome"] as? String,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(200.dp)
+                                .height(250.dp)
                         )
                     }
                     Spacer(modifier = Modifier.height(16.dp))
-                    Text(text = r["nome"] as? String ?: "", style = MaterialTheme.typography.headlineSmall)
+                    Text(text = receita["nome"] as? String ?: "", style = MaterialTheme.typography.headlineMedium)
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text(text = r["descricaoCurta"] as? String ?: "", style = MaterialTheme.typography.bodyMedium)
+                    Text(text = receita["descricaoCurta"] as? String ?: "", style = MaterialTheme.typography.bodyLarge)
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(text = "Ingredientes:", style = MaterialTheme.typography.titleMedium)
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        (r["ingredientes"] as? List<*>)?.forEach { ingrediente ->
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .background(
-                                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-                                        shape = RoundedCornerShape(24.dp)
-                                    )
-                                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                            ) {
-                                Text(
-                                    text = ingrediente.toString(),
-                                    color = MaterialTheme.colorScheme.primary,
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
-                            }
-                        }
+                    (receita["ingredientes"] as? List<*>)?.forEach { ingrediente ->
+                        Text("• $ingrediente", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 8.dp, top = 4.dp))
                     }
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(text = "Modo de Preparo:", style = MaterialTheme.typography.titleMedium)
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        (r["modoPreparo"] as? List<*>)?.forEachIndexed { index, passo ->
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .background(
-                                        color = MaterialTheme.colorScheme.surface,
-                                        shape = RoundedCornerShape(24.dp)
-                                    )
-                                    .padding(vertical = 8.dp, horizontal = 16.dp)
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(32.dp)
-                                        .background(
-                                            color = MaterialTheme.colorScheme.primary,
-                                            shape = RoundedCornerShape(50)
-                                        ),
-                                    contentAlignment = Alignment.Center
+                    (receita["modoPreparo"] as? List<*>)?.forEachIndexed { index, passo ->
+                        Text("${index + 1}. $passo", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 8.dp, top = 4.dp))
+                    }
+                    
+                    // Informações Nutricionais
+                    if (nutritionState != null) {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(text = "Informações Nutricionais:", style = MaterialTheme.typography.titleMedium)
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                        ) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
-                                    Text(
-                                        text = "${index + 1}",
-                                        color = Color.White,
-                                        style = MaterialTheme.typography.bodyMedium
-                                    )
+                                    Text("Calorias:", style = MaterialTheme.typography.bodyMedium)
+                                    Text("${nutritionState!!.calories.toInt()} kcal", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
                                 }
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Text(
-                                    text = passo.toString(),
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text("Proteínas:", style = MaterialTheme.typography.bodyMedium)
+                                    Text("${nutritionState!!.protein.toInt()}g", style = MaterialTheme.typography.bodyMedium)
+                                }
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text("Gorduras:", style = MaterialTheme.typography.bodyMedium)
+                                    Text("${nutritionState!!.fat.toInt()}g", style = MaterialTheme.typography.bodyMedium)
+                                }
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text("Carboidratos:", style = MaterialTheme.typography.bodyMedium)
+                                    Text("${nutritionState!!.carbohydrates.toInt()}g", style = MaterialTheme.typography.bodyMedium)
+                                }
+                                nutritionState!!.fiber?.let { fiber ->
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Text("Fibras:", style = MaterialTheme.typography.bodyMedium)
+                                        Text("${fiber.toInt()}g", style = MaterialTheme.typography.bodyMedium)
+                                    }
+                                }
+                                nutritionState!!.sugar?.let { sugar ->
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Text("Açúcares:", style = MaterialTheme.typography.bodyMedium)
+                                        Text("${sugar.toInt()}g", style = MaterialTheme.typography.bodyMedium)
+                                    }
+                                }
                             }
                         }
                     }
@@ -208,88 +236,46 @@ fun DetalheScreen(navController: NavHostController, receitaId: String?) {
                 contentAlignment = Alignment.Center
             ) { Text("Receita não encontrada.", style = MaterialTheme.typography.bodyLarge) }
         }
-        // Diálogo de edição (apenas estrutura, lógica de update pode ser implementada no ViewModel futuramente)
+
         if (showEditDialog && receita != null) {
             AlertDialog(
                 onDismissRequest = { showEditDialog = false },
                 title = { Text("Editar Receita") },
                 text = {
-                    Column {
-                        Button(onClick = { imagePickerLauncher.launch("image/*") }, enabled = uiState !is ReceitasUiState.Loading) {
-                            Text(if (editImagemUri == null) "Selecionar nova imagem" else "Imagem Selecionada")
+                     Column {
+                        Button(onClick = { imagePickerLauncher.launch("image/*") }) {
+                            Text(if (editImagemUri == null) "Selecionar nova imagem" else "Nova Imagem Selecionada!")
                         }
                         Spacer(Modifier.height(8.dp))
-                        OutlinedTextField(
-                            value = editNome,
-                            onValueChange = { editNome = it },
-                            label = { Text("Nome da receita") },
-                            enabled = uiState !is ReceitasUiState.Loading
-                        )
-                        OutlinedTextField(
-                            value = editDescricao,
-                            onValueChange = { editDescricao = it },
-                            label = { Text("Descrição curta") },
-                            enabled = uiState !is ReceitasUiState.Loading
-                        )
-                        OutlinedTextField(
-                            value = editTempo,
-                            onValueChange = { editTempo = it },
-                            label = { Text("Tempo de preparo") },
-                            enabled = uiState !is ReceitasUiState.Loading
-                        )
-                        OutlinedTextField(
-                            value = editPorcoes,
-                            onValueChange = { editPorcoes = it.filter { c -> c.isDigit() } },
-                            label = { Text("Porções") },
-                            enabled = uiState !is ReceitasUiState.Loading
-                        )
-                        OutlinedTextField(
-                            value = editIngredientes,
-                            onValueChange = { editIngredientes = it },
-                            label = { Text("Ingredientes (um por linha)") },
-                            maxLines = 4,
-                            enabled = uiState !is ReceitasUiState.Loading
-                        )
-                        OutlinedTextField(
-                            value = editModoPreparo,
-                            onValueChange = { editModoPreparo = it },
-                            label = { Text("Modo de preparo (um por linha)") },
-                            maxLines = 4,
-                            enabled = uiState !is ReceitasUiState.Loading
-                        )
+                        OutlinedTextField(value = editNome, onValueChange = { editNome = it }, label = { Text("Nome da receita") })
+                        OutlinedTextField(value = editDescricao, onValueChange = { editDescricao = it }, label = { Text("Descrição curta") })
+                        OutlinedTextField(value = editTempo, onValueChange = { editTempo = it }, label = { Text("Tempo de preparo") })
+                        OutlinedTextField(value = editPorcoes, onValueChange = { editPorcoes = it.filter { c -> c.isDigit() } }, label = { Text("Porções") })
+                        OutlinedTextField(value = editIngredientes, onValueChange = { editIngredientes = it }, label = { Text("Ingredientes (um por linha)") }, maxLines = 4)
+                        OutlinedTextField(value = editModoPreparo, onValueChange = { editModoPreparo = it }, label = { Text("Modo de preparo (um por linha)") }, maxLines = 4)
                     }
                 },
                 confirmButton = {
                     Button(
                         onClick = {
-                            if (receita != null) {
-                                receitasViewModel.editarReceita(
-                                    context = context,
-                                    id = receita["id"]?.toString() ?: return@Button,
-                                    nome = editNome,
-                                    descricaoCurta = editDescricao,
-                                    novaImagemUri = editImagemUri,
-                                    ingredientes = editIngredientes.split('\n').filter { it.isNotBlank() },
-                                    modoPreparo = editModoPreparo.split('\n').filter { it.isNotBlank() },
-                                    tempoPreparo = editTempo,
-                                    porcoes = editPorcoes.toIntOrNull() ?: 1,
-                                    imagemUrlAntiga = receita["imagemUrl"] as? String
-                                )
-                                showEditDialog = false
-                            }
+                            receitasViewModel.editarReceita(
+                                context = context,
+                                id = receita["id"]?.toString() ?: return@Button,
+                                nome = editNome,
+                                descricaoCurta = editDescricao,
+                                novaImagemUri = editImagemUri,
+                                ingredientes = editIngredientes.split('\n').filter { it.isNotBlank() },
+                                modoPreparo = editModoPreparo.split('\n').filter { it.isNotBlank() },
+                                tempoPreparo = editTempo,
+                                porcoes = editPorcoes.toIntOrNull() ?: 1,
+                                imagemUrlAntiga = receita["imagemUrl"] as? String
+                            )
+                            showEditDialog = false
                         },
-                        enabled = uiState !is ReceitasUiState.Loading && editNome.isNotBlank() && editDescricao.isNotBlank()
-                    ) {
-                        if (uiState is ReceitasUiState.Loading) {
-                            CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
-                        } else {
-                            Text("Salvar")
-                        }
-                    }
+                        enabled = editNome.isNotBlank() && editDescricao.isNotBlank()
+                    ) { Text("Salvar") }
                 },
-                dismissButton = {
-                    Button(onClick = { showEditDialog = false }, enabled = uiState !is ReceitasUiState.Loading) { Text("Cancelar") }
-                }
+                dismissButton = { Button(onClick = { showEditDialog = false }) { Text("Cancelar") } }
             )
         }
     }

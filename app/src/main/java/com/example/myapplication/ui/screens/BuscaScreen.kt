@@ -97,11 +97,24 @@ fun BuscaScreen(navController: NavHostController) {
                         ReceitaCardFirebase(
                             receita = receita,
                             onClick = {
-                                val id = receita["id"]?.toString() ?: ""
+                                val id = receita["id"]?.toString()
                                 navController.navigate(AppScreens.DetalheScreen.createRoute(id))
                             },
-                            onEdit = {},
-                            onDelete = {}
+                            onEdit = {
+                                val id = receita["id"]?.toString()
+                                navController.navigate(AppScreens.DetalheScreen.createRoute(id, startInEditMode = true))
+                            },
+                            onDelete = {
+                                val id = receita["id"]?.toString() ?: return@ReceitaCardFirebase
+                                val imagemUrl = receita["imagemUrl"] as? String
+                                receitasViewModel.deletarReceita(id, imagemUrl)
+                            },
+                            onCurtir = { id, userId, curtidas ->
+                                receitasViewModel.curtirReceita(id, userId, curtidas)
+                            },
+                            onFavoritar = { id, userId, favoritos ->
+                                receitasViewModel.favoritarReceita(id, userId, favoritos)
+                            }
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                     }

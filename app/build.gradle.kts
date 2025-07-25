@@ -92,6 +92,10 @@ dependencies {
     implementation(libs.play.services.location)
     implementation(libs.gson)
     implementation(libs.coil.compose)
+    
+    // Retrofit para integração com APIs
+    implementation(libs.retrofit)
+    implementation(libs.retrofit.converter.gson)
 
     // Dependências de Teste
     testImplementation(libs.junit)
