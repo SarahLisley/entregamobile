@@ -58,7 +58,7 @@ fun DetalheScreen(
         if (uri != null) editImagemUri = uri
     }
 
-    val receita = (uiState as? ReceitasUiState.Success)?.receitas?.find { it["id"]?.toString() == receitaId }
+    val receita = (uiState as? ReceitasUiState.Success)?.receitas?.find { it.id == receitaId }
     val isLoading = uiState is ReceitasUiState.Loading
     val isError = uiState is ReceitasUiState.Error
     
@@ -67,12 +67,12 @@ fun DetalheScreen(
 
     LaunchedEffect(receita, showEditDialog) {
         if (receita != null && showEditDialog) {
-            editNome = receita["nome"] as? String ?: ""
-            editDescricao = receita["descricaoCurta"] as? String ?: ""
-            editTempo = receita["tempoPreparo"] as? String ?: ""
-            editPorcoes = (receita["porcoes"] as? Number)?.toString() ?: ""
-            editIngredientes = (receita["ingredientes"] as? List<*>)?.joinToString("\n") ?: ""
-            editModoPreparo = (receita["modoPreparo"] as? List<*>)?.joinToString("\n") ?: ""
+            editNome = receita.nome
+            editDescricao = receita.descricaoCurta
+            editTempo = receita.tempoPreparo
+            editPorcoes = receita.porcoes.toString()
+            editIngredientes = receita.ingredientes.joinToString("\n")
+            editModoPreparo = receita.modoPreparo.joinToString("\n")
             editImagemUri = null // Reseta a imagem ao abrir o diálogo
         }
     }
@@ -93,7 +93,7 @@ fun DetalheScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(receita?.get("nome") as? String ?: "Detalhes") },
+                title = { Text(receita?.nome ?: "Detalhes") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.Filled.ArrowBack, contentDescription = "Voltar")
@@ -102,8 +102,7 @@ fun DetalheScreen(
                 actions = {
                     if (receita != null) {
                         IconButton(onClick = { 
-                            val nomeReceita = receita["nome"] as? String ?: return@IconButton
-                            receitasViewModel.buscarInformacoesNutricionais(nomeReceita)
+                            receitasViewModel.buscarInformacoesNutricionais(receita.nome)
                         }) {
                             Icon(Icons.Filled.Info, contentDescription = "Informações Nutricionais")
                         }
@@ -111,9 +110,7 @@ fun DetalheScreen(
                             Icon(Icons.Filled.Edit, contentDescription = "Editar")
                         }
                         IconButton(onClick = {
-                            val id = receita["id"]?.toString() ?: return@IconButton
-                            val imagemUrl = receita["imagemUrl"] as? String
-                            receitasViewModel.deletarReceita(id, imagemUrl)
+                            receitasViewModel.deletarReceita(receita.id, receita.imagemUrl)
                             navController.popBackStack()
                         }) {
                             Icon(Icons.Filled.Delete, contentDescription = "Deletar")
@@ -139,28 +136,28 @@ fun DetalheScreen(
                         .padding(16.dp)
                         .fillMaxSize()
                 ) {
-                    val imagemUrl = receita["imagemUrl"] as? String ?: ""
+                    val imagemUrl = receita.imagemUrl
                     if (imagemUrl.isNotBlank()) {
                         AsyncImage(
                             model = imagemUrl,
-                            contentDescription = receita["nome"] as? String,
+                            contentDescription = receita.nome,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(250.dp)
                         )
                     }
                     Spacer(modifier = Modifier.height(16.dp))
-                    Text(text = receita["nome"] as? String ?: "", style = MaterialTheme.typography.headlineMedium)
+                    Text(text = receita.nome, style = MaterialTheme.typography.headlineMedium)
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text(text = receita["descricaoCurta"] as? String ?: "", style = MaterialTheme.typography.bodyLarge)
+                    Text(text = receita.descricaoCurta, style = MaterialTheme.typography.bodyLarge)
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(text = "Ingredientes:", style = MaterialTheme.typography.titleMedium)
-                    (receita["ingredientes"] as? List<*>)?.forEach { ingrediente ->
+                    receita.ingredientes.forEach { ingrediente ->
                         Text("• $ingrediente", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 8.dp, top = 4.dp))
                     }
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(text = "Modo de Preparo:", style = MaterialTheme.typography.titleMedium)
-                    (receita["modoPreparo"] as? List<*>)?.forEachIndexed { index, passo ->
+                    receita.modoPreparo.forEachIndexed { index, passo ->
                         Text("${index + 1}. $passo", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 8.dp, top = 4.dp))
                     }
                     
@@ -260,7 +257,7 @@ fun DetalheScreen(
                         onClick = {
                             receitasViewModel.editarReceita(
                                 context = context,
-                                id = receita["id"]?.toString() ?: return@Button,
+                                id = receita.id,
                                 nome = editNome,
                                 descricaoCurta = editDescricao,
                                 novaImagemUri = editImagemUri,
@@ -268,7 +265,7 @@ fun DetalheScreen(
                                 modoPreparo = editModoPreparo.split('\n').filter { it.isNotBlank() },
                                 tempoPreparo = editTempo,
                                 porcoes = editPorcoes.toIntOrNull() ?: 1,
-                                imagemUrlAntiga = receita["imagemUrl"] as? String
+                                imagemUrlAntiga = receita.imagemUrl
                             )
                             showEditDialog = false
                         },

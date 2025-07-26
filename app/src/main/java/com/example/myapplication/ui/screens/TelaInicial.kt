@@ -69,7 +69,7 @@ import android.net.Uri
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import com.example.myapplication.data.FirebaseRepository
+import com.example.myapplication.data.ReceitasRepository
 import com.example.myapplication.data.SupabaseImageUploader
 import androidx.compose.runtime.collectAsState
 import androidx.compose.material3.SnackbarHostState
@@ -103,7 +103,7 @@ fun TelaInicial(navController: NavHostController) {
     val imagePickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         if (uri != null) imagemUri = uri
     }
-    var receitaParaDeletar by remember { mutableStateOf<Map<String, Any>?>(null) }
+    var receitaParaDeletar by remember { mutableStateOf<Map<String, Any?>?>(null) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     // Coleta eventos únicos do ViewModel para exibir Snackbars
     LaunchedEffect(Unit) {
@@ -144,13 +144,7 @@ fun TelaInicial(navController: NavHostController) {
                                 expandedMenu = false
                             }
                         )
-                        DropdownMenuItem(
-                            text = { Text("Lista de Compras") },
-                            onClick = {
-                                navController.navigate(AppScreens.ShoppingListScreen.route)
-                                expandedMenu = false
-                            }
-                        )
+
                     }
                 }
             )
@@ -191,24 +185,22 @@ fun TelaInicial(navController: NavHostController) {
                         contentPadding = PaddingValues(8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        items(items = receitas, key = { it["id"] as? String ?: it["id"].toString() }) { receita ->
+                        items(items = receitas, key = { it.id }) { receita ->
                             AnimatedVisibility(
                                 visible = true,
                                 enter = fadeIn(tween(300)) + slideInVertically(animationSpec = tween(300)) { it / 2 }
                             ) {
                                 ReceitaCardFirebase(
-                                    receita = receita,
+                                    receita = receita.toMap(),
                                     onClick = {
-                                        val id = receita["id"]?.toString()
-                                        navController.navigate(AppScreens.DetalheScreen.createRoute(id))
+                                        navController.navigate(AppScreens.DetalheScreen.createRoute(receita.id))
                                     },
                                     onEdit = {
-                                        val id = receita["id"]?.toString()
                                         // NAVEGAÇÃO PARA EDIÇÃO: Passa o argumento `startInEditMode=true`
-                                        navController.navigate(AppScreens.DetalheScreen.createRoute(id, startInEditMode = true))
+                                        navController.navigate(AppScreens.DetalheScreen.createRoute(receita.id, startInEditMode = true))
                                     },
                                     onDelete = {
-                                        receitaParaDeletar = receita
+                                        receitaParaDeletar = receita.toMap()
                                         showDeleteDialog = true
                                     },
                                     onCurtir = { id, userId, curtidas ->
@@ -340,7 +332,7 @@ fun TelaInicial(navController: NavHostController) {
 // Deixar apenas ReceitaCardFirebase e fluxo 100% Firebase
 @Composable
 fun ReceitaCardFirebase(
-    receita: Map<String, Any>,
+    receita: Map<String, Any?>,
     onClick: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
@@ -463,4 +455,22 @@ fun ReceitaCardFirebase(
             }
         }
     }
+}
+
+// Extensão para converter ReceitaEntity para Map
+private fun com.example.myapplication.model.ReceitaEntity.toMap(): Map<String, Any?> {
+    return mapOf(
+        "id" to id,
+        "nome" to nome,
+        "descricaoCurta" to descricaoCurta,
+        "imagemUrl" to imagemUrl,
+        "ingredientes" to ingredientes,
+        "modoPreparo" to modoPreparo,
+        "tempoPreparo" to tempoPreparo,
+        "porcoes" to porcoes,
+        "userId" to userId,
+        "userEmail" to userEmail,
+        "curtidas" to curtidas,
+        "favoritos" to favoritos
+    )
 }

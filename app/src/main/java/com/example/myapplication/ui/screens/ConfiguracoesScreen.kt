@@ -38,7 +38,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.setValue
 import com.example.myapplication.notifications.NotificationHelper
-import com.example.myapplication.data.FirebaseRepository
+import com.example.myapplication.data.ReceitasRepository
+import com.example.myapplication.data.AppDatabase
+import com.example.myapplication.data.ConnectivityObserver
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.*
 import android.widget.Toast
@@ -56,17 +58,24 @@ fun ConfiguracoesScreen(
             UserPreferencesRepository(context)
         )
     )
-    val firebaseRepository = remember { FirebaseRepository() }
-    var receitasFirebase by remember { mutableStateOf<List<Map<String, Any>>>(emptyList()) }
+    val database = remember { AppDatabase.getDatabase(context) }
+    val receitaDao = remember { database.receitaDao() }
+    val connectivityObserver = remember { ConnectivityObserver(context) }
+    val receitasRepository = remember { ReceitasRepository(receitaDao, connectivityObserver) }
+    var receitasFirebase by remember { mutableStateOf<List<Map<String, Any?>>>(emptyList()) }
     var showReceitaDialog by remember { mutableStateOf(false) }
-    var receitaSelecionada by remember { mutableStateOf<Map<String, Any>?>(null) }
+    var receitaSelecionada by remember { mutableStateOf<Map<String, Any?>?>(null) }
     var showTimePicker by remember { mutableStateOf(false) }
     var showPermissionDialog by remember { mutableStateOf(false) }
     val darkMode by viewModel.isDarkModeEnabled.collectAsState()
 
     LaunchedEffect(Unit) {
-        firebaseRepository.escutarReceitas { data ->
-            receitasFirebase = data?.values?.mapNotNull { it as? Map<String, Any> } ?: emptyList()
+        // Iniciar escuta do Firebase (atualiza o Room automaticamente)
+        receitasRepository.escutarReceitas { }
+        
+        // Buscar receitas do Room
+        receitasRepository.getReceitas().collect { receitas ->
+            receitasFirebase = receitas.map { it.toMap() }
         }
     }
 
@@ -199,6 +208,24 @@ fun ConfiguracoesScreen(
             }
         }
     }
+}
+
+// Extensão para converter ReceitaEntity para Map
+private fun com.example.myapplication.model.ReceitaEntity.toMap(): Map<String, Any?> {
+    return mapOf(
+        "id" to id,
+        "nome" to nome,
+        "descricaoCurta" to descricaoCurta,
+        "imagemUrl" to imagemUrl,
+        "ingredientes" to ingredientes,
+        "modoPreparo" to modoPreparo,
+        "tempoPreparo" to tempoPreparo,
+        "porcoes" to porcoes,
+        "userId" to userId,
+        "userEmail" to userEmail,
+        "curtidas" to curtidas,
+        "favoritos" to favoritos
+    )
 }
 
 @Composable

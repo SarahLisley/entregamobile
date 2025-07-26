@@ -5,9 +5,12 @@ import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.myapplication.data.FirebaseRepository
+import com.example.myapplication.data.ReceitasRepository
 import com.example.myapplication.data.SupabaseImageUploader
 import com.example.myapplication.data.NutritionRepository
+import com.example.myapplication.data.AppDatabase
+import com.example.myapplication.data.ConnectivityObserver
+import com.example.myapplication.model.ReceitaEntity
 import com.example.myapplication.model.RecipeNutrition
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -17,15 +20,19 @@ import kotlinx.coroutines.launch
 
 sealed class ReceitasUiState {
     object Loading : ReceitasUiState()
-    data class Success(val receitas: List<Map<String, Any>>) : ReceitasUiState()
+    data class Success(val receitas: List<ReceitaEntity>) : ReceitasUiState()
     data class Error(val message: String) : ReceitasUiState()
 }
 
 class ReceitasViewModel(
     private val app: Application
 ) : AndroidViewModel(app) {
-    private val repository = FirebaseRepository()
+    private val database = AppDatabase.getDatabase(app)
+    private val receitaDao = database.receitaDao()
+    private val connectivityObserver = ConnectivityObserver(app)
+    private val repository = ReceitasRepository(receitaDao, connectivityObserver)
     private val nutritionRepository = NutritionRepository()
+    
     private val _uiState = MutableStateFlow<ReceitasUiState>(ReceitasUiState.Loading)
     val uiState: StateFlow<ReceitasUiState> = _uiState
 
@@ -39,13 +46,33 @@ class ReceitasViewModel(
 
     init {
         carregarReceitas()
+        sincronizarComFirebase()
     }
 
     fun carregarReceitas() {
-        _uiState.value = ReceitasUiState.Loading
-        repository.escutarReceitas { data ->
-            val receitas = data?.values?.mapNotNull { it as? Map<String, Any> } ?: emptyList()
-            _uiState.value = ReceitasUiState.Success(receitas)
+        viewModelScope.launch {
+            try {
+                // Observar receitas do Room (fonte única da verdade)
+                repository.getReceitas().collect { receitas ->
+                    _uiState.value = ReceitasUiState.Success(receitas)
+                }
+            } catch (e: Exception) {
+                _uiState.value = ReceitasUiState.Error(e.message ?: "Erro ao carregar receitas")
+            }
+        }
+    }
+
+    private fun sincronizarComFirebase() {
+        viewModelScope.launch {
+            try {
+                repository.sincronizarComFirebase()
+                // Escutar mudanças do Firebase
+                repository.escutarReceitas { _ ->
+                    // As mudanças são automaticamente refletidas no Room
+                }
+            } catch (e: Exception) {
+                println("Erro na sincronização: ${e.message}")
+            }
         }
     }
 
@@ -83,7 +110,6 @@ class ReceitasViewModel(
                     imagemUrl = imageUrl
                 )
                 _eventChannel.send("Receita adicionada com sucesso!")
-                carregarReceitas()
             } catch (e: Exception) {
                 _uiState.value = ReceitasUiState.Error(e.message ?: "Erro desconhecido")
             }
@@ -97,9 +123,8 @@ class ReceitasViewModel(
                 if (!imageUrl.isNullOrBlank()) {
                     SupabaseImageUploader.deleteImageByUrl(imageUrl)
                 }
-                repository.db.child(id).removeValue()
+                repository.deletarReceita(id)
                 _eventChannel.send("Receita deletada com sucesso!")
-                carregarReceitas()
             } catch (e: Exception) {
                 _uiState.value = ReceitasUiState.Error(e.message ?: "Erro ao deletar receita")
             }
@@ -114,8 +139,10 @@ class ReceitasViewModel(
                 } else {
                     curtidasAtuais + userId
                 }
-                repository.db.child(id).child("curtidas").setValue(atualizados)
-            } catch (_: Exception) {}
+                repository.atualizarCurtidas(id, atualizados)
+            } catch (e: Exception) {
+                _eventChannel.send("Erro ao curtir receita: ${e.message}")
+            }
         }
     }
 
@@ -127,8 +154,10 @@ class ReceitasViewModel(
                 } else {
                     favoritosAtuais + userId
                 }
-                repository.db.child(id).child("favoritos").setValue(atualizados)
-            } catch (_: Exception) {}
+                repository.atualizarFavoritos(id, atualizados)
+            } catch (e: Exception) {
+                _eventChannel.send("Erro ao favoritar receita: ${e.message}")
+            }
         }
     }
 
@@ -154,18 +183,37 @@ class ReceitasViewModel(
                     }
                     imageUrl = SupabaseImageUploader.uploadImage(context, novaImagemUri)
                 }
-                val updateMap = mapOf(
-                    "nome" to nome,
-                    "descricaoCurta" to descricaoCurta,
-                    "tempoPreparo" to tempoPreparo,
-                    "porcoes" to porcoes,
-                    "ingredientes" to ingredientes,
-                    "modoPreparo" to modoPreparo,
-                    "imagemUrl" to (imageUrl ?: "")
-                )
-                repository.db.child(id).updateChildren(updateMap)
+                
+                // Buscar receita atual do Room
+                val receitaAtual = receitaDao.getReceitaById(id)
+                if (receitaAtual != null) {
+                    val receitaAtualizada = receitaAtual.copy(
+                        nome = nome,
+                        descricaoCurta = descricaoCurta,
+                        imagemUrl = imageUrl ?: "",
+                        ingredientes = ingredientes,
+                        modoPreparo = modoPreparo,
+                        tempoPreparo = tempoPreparo,
+                        porcoes = porcoes,
+                        isSynced = connectivityObserver.isConnected(),
+                        lastModified = System.currentTimeMillis()
+                    )
+                    
+                    // Atualizar no Room
+                    receitaDao.updateReceita(receitaAtualizada)
+                    
+                    // Se online, atualizar no Firebase
+                    if (connectivityObserver.isConnected()) {
+                        try {
+                            repository.salvarReceitaNoFirebase(receitaAtualizada.toMap())
+                            receitaDao.markAsSynced(id)
+                        } catch (e: Exception) {
+                            receitaDao.updateReceita(receitaAtualizada.copy(isSynced = false))
+                        }
+                    }
+                }
+                
                 _eventChannel.send("Receita editada com sucesso!")
-                carregarReceitas()
             } catch (e: Exception) {
                 _uiState.value = ReceitasUiState.Error(e.message ?: "Erro ao editar receita")
             }
@@ -198,4 +246,22 @@ class ReceitasViewModel(
     fun limparInformacoesNutricionais() {
         _nutritionState.value = null
     }
+}
+
+// Extensão para converter ReceitaEntity para Map
+private fun ReceitaEntity.toMap(): Map<String, Any?> {
+    return mapOf(
+        "id" to id,
+        "nome" to nome,
+        "descricaoCurta" to descricaoCurta,
+        "imagemUrl" to imagemUrl,
+        "ingredientes" to ingredientes,
+        "modoPreparo" to modoPreparo,
+        "tempoPreparo" to tempoPreparo,
+        "porcoes" to porcoes,
+        "userId" to userId,
+        "userEmail" to userEmail,
+        "curtidas" to curtidas,
+        "favoritos" to favoritos
+    )
 }

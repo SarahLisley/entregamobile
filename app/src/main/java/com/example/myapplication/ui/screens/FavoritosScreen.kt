@@ -15,7 +15,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.example.myapplication.navigation.AppScreens
 import com.example.myapplication.ui.components.BottomNavigationBar
-import com.example.myapplication.data.FirebaseRepository
+import com.example.myapplication.data.ReceitasRepository
 import kotlinx.coroutines.launch
 import coil.compose.AsyncImage
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -65,8 +65,7 @@ fun FavoritosScreen(navController: NavHostController) {
             }
             is ReceitasUiState.Success -> {
                 val favoritos = state.receitas.filter {
-                    val favList = it["favoritos"] as? List<String> ?: emptyList()
-                    currentUser != null && favList.contains(currentUser.uid)
+                    currentUser != null && it.favoritos.contains(currentUser.uid)
                 }
                 if (favoritos.isEmpty()) {
                     Box(modifier = Modifier.fillMaxSize().padding(paddingValues), contentAlignment = Alignment.Center) {
@@ -81,19 +80,15 @@ fun FavoritosScreen(navController: NavHostController) {
                     ) {
                         items(favoritos) { receita ->
                             ReceitaCardFirebase(
-                                receita = receita,
+                                receita = receita.toMap(),
                                 onClick = {
-                                    val id = receita["id"]?.toString()
-                                    navController.navigate(AppScreens.DetalheScreen.createRoute(id))
+                                    navController.navigate(AppScreens.DetalheScreen.createRoute(receita.id))
                                 },
                                 onEdit = {
-                                    val id = receita["id"]?.toString()
-                                    navController.navigate(AppScreens.DetalheScreen.createRoute(id, startInEditMode = true))
+                                    navController.navigate(AppScreens.DetalheScreen.createRoute(receita.id, startInEditMode = true))
                                 },
                                 onDelete = {
-                                    val id = receita["id"]?.toString() ?: return@ReceitaCardFirebase
-                                    val imagemUrl = receita["imagemUrl"] as? String
-                                    receitasViewModel.deletarReceita(id, imagemUrl)
+                                    receitasViewModel.deletarReceita(receita.id, receita.imagemUrl)
                                 },
                                 onCurtir = { id, userId, curtidas ->
                                     receitasViewModel.curtirReceita(id, userId, curtidas)
@@ -120,4 +115,22 @@ fun FavoritosScreen(navController: NavHostController) {
             }
         }
     }
+}
+
+// Extensão para converter ReceitaEntity para Map
+private fun com.example.myapplication.model.ReceitaEntity.toMap(): Map<String, Any?> {
+    return mapOf(
+        "id" to id,
+        "nome" to nome,
+        "descricaoCurta" to descricaoCurta,
+        "imagemUrl" to imagemUrl,
+        "ingredientes" to ingredientes,
+        "modoPreparo" to modoPreparo,
+        "tempoPreparo" to tempoPreparo,
+        "porcoes" to porcoes,
+        "userId" to userId,
+        "userEmail" to userEmail,
+        "curtidas" to curtidas,
+        "favoritos" to favoritos
+    )
 }

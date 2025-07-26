@@ -17,7 +17,7 @@ sealed class AppScreens(val route: String) {
     object ConfiguracoesScreen : AppScreens("configuracoes")
     object AjudaScreen : AppScreens("ajuda")
     object BuscaScreen : AppScreens("busca")
-    object ShoppingListScreen : AppScreens("shopping_list")
+
 
     object DetalheScreen {
         const val routeWithArgs = "detalhe_receita/{receitaId}?startInEditMode={startInEditMode}"
@@ -56,9 +56,7 @@ fun AppNavigation() {
         composable(AppScreens.BuscaScreen.route) {
             BuscaScreen(navController)
         }
-        composable(AppScreens.ShoppingListScreen.route) {
-            ShoppingListScreen()
-        }
+
         composable(
             route = AppScreens.DetalheScreen.routeWithArgs,
             arguments = AppScreens.DetalheScreen.arguments

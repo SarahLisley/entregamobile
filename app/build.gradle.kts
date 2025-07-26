@@ -96,6 +96,9 @@ dependencies {
     // Retrofit para integração com APIs
     implementation(libs.retrofit)
     implementation(libs.retrofit.converter.gson)
+    
+    // WorkManager para sincronização em background
+    implementation(libs.work.manager)
 
     // Dependências de Teste
     testImplementation(libs.junit)

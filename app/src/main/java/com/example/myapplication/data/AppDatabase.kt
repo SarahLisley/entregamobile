@@ -4,12 +4,13 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
-import com.example.myapplication.model.ShoppingItem
+import androidx.room.TypeConverters
+import com.example.myapplication.model.ReceitaEntity
 
-@Database(entities = [ShoppingItem::class], version = 2, exportSchema = false)
+@Database(entities = [ReceitaEntity::class], version = 4, exportSchema = false)
+@TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
-    abstract fun shoppingItemDao(): ShoppingItemDao
-    // ... outros DAOs ...
+    abstract fun receitaDao(): ReceitaDao
 
     companion object {
         @Volatile
@@ -20,7 +21,7 @@ abstract class AppDatabase : RoomDatabase() {
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     AppDatabase::class.java,
-                    "shopping_db"
+                    "nutrilivre_db"
                 ).fallbackToDestructiveMigration()
                  .build()
                 INSTANCE = instance

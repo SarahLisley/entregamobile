@@ -9,7 +9,7 @@ interface NutritionApiService {
     @GET("recipes/guessNutrition")
     suspend fun getNutritionInfo(
         @Query("title") title: String,
-        @Query("apiKey") apiKey: String = "YOUR_SPOONACULAR_API_KEY" // Substitua pela sua chave
+        @Query("apiKey") apiKey: String = "14405c3dbc1c4bd0a92fe3f0b53a8d23" // Substitua pela sua chave
     ): NutritionResponse
     
     @GET("recipes/complexSearch")
