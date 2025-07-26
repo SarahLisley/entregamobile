@@ -2,14 +2,18 @@ package com.example.myapplication.data
 
 import android.content.Context
 import android.util.Log
-import com.example.myapplication.model.ReceitaEntity
-import com.example.myapplication.model.RecipeNutrition
+import com.example.myapplication.core.data.database.entity.ReceitaEntity
+import com.example.myapplication.core.data.model.RecipeNutrition
+import com.example.myapplication.core.data.repository.ReceitasRepository
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class DataSeeder(
+@Singleton
+class DataSeeder @Inject constructor(
     private val context: Context,
     private val receitasRepository: ReceitasRepository,
     private val nutritionRepository: NutritionRepository
@@ -73,6 +77,7 @@ class DataSeeder(
                 try {
                     // Salvar a receita no banco
                     receitasRepository.salvarReceita(
+                        context = context,
                         id = recipe.id,
                         nome = recipe.nome,
                         descricaoCurta = recipe.descricaoCurta,
@@ -131,6 +136,7 @@ class DataSeeder(
                         
                         // Salvar no banco
                         receitasRepository.salvarReceita(
+                            context = context,
                             id = recipe.id,
                             nome = recipe.nome,
                             descricaoCurta = recipe.descricaoCurta,

@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -22,7 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.myapplication.data.UserPreferencesRepository
+import com.example.myapplication.core.data.repository.UserPreferencesRepository
 import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.AlertDialog
@@ -41,11 +42,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.foundation.layout.size
 import com.example.myapplication.notifications.NotificationHelper
-import com.example.myapplication.data.ReceitasRepository
-import com.example.myapplication.data.AppDatabase
-import com.example.myapplication.data.ConnectivityObserver
-import com.example.myapplication.data.DataSeeder
-import com.example.myapplication.data.NutritionRepository
+import com.example.myapplication.core.data.repository.ReceitasRepository
+import com.example.myapplication.core.data.database.AppDatabase
+import com.example.myapplication.core.data.network.ConnectivityObserver
+import com.example.myapplication.core.data.repository.DataSeeder
+import com.example.myapplication.core.data.repository.NutritionRepository
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.*
 import android.widget.Toast
@@ -67,8 +68,8 @@ fun ConfiguracoesScreen(
     val database = remember { AppDatabase.getDatabase(context) }
     val receitaDao = remember { database.receitaDao() }
     val connectivityObserver = remember { ConnectivityObserver(context) }
-    val receitasRepository = remember { ReceitasRepository(receitaDao, connectivityObserver) }
-    val nutritionRepository = remember { NutritionRepository() }
+    val receitasRepository = remember { ReceitasRepository(receitaDao, connectivityObserver, com.example.myapplication.core.data.storage.ImageStorageService(), com.example.myapplication.core.ui.error.ErrorHandler()) }
+    val nutritionRepository = remember { NutritionRepository(context) }
     val dataSeeder = remember { DataSeeder(context, receitasRepository, nutritionRepository) }
     var receitasFirebase by remember { mutableStateOf<List<Map<String, Any?>>>(emptyList()) }
     var showReceitaDialog by remember { mutableStateOf(false) }
@@ -94,7 +95,7 @@ fun ConfiguracoesScreen(
                 title = { Text("Configurações") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Filled.ArrowBack, contentDescription = "Voltar")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Voltar")
                     }
                 }
             )
@@ -253,24 +254,6 @@ fun ConfiguracoesScreen(
             }
         }
     }
-}
-
-// Extensão para converter ReceitaEntity para Map
-private fun com.example.myapplication.model.ReceitaEntity.toMap(): Map<String, Any?> {
-    return mapOf(
-        "id" to id,
-        "nome" to nome,
-        "descricaoCurta" to descricaoCurta,
-        "imagemUrl" to imagemUrl,
-        "ingredientes" to ingredientes,
-        "modoPreparo" to modoPreparo,
-        "tempoPreparo" to tempoPreparo,
-        "porcoes" to porcoes,
-        "userId" to userId,
-        "userEmail" to userEmail,
-        "curtidas" to curtidas,
-        "favoritos" to favoritos
-    )
 }
 
 @Composable

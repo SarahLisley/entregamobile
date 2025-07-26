@@ -456,21 +456,3 @@ fun ReceitaCardFirebase(
         }
     }
 }
-
-// Extensão para converter ReceitaEntity para Map
-private fun com.example.myapplication.model.ReceitaEntity.toMap(): Map<String, Any?> {
-    return mapOf(
-        "id" to id,
-        "nome" to nome,
-        "descricaoCurta" to descricaoCurta,
-        "imagemUrl" to imagemUrl,
-        "ingredientes" to ingredientes,
-        "modoPreparo" to modoPreparo,
-        "tempoPreparo" to tempoPreparo,
-        "porcoes" to porcoes,
-        "userId" to userId,
-        "userEmail" to userEmail,
-        "curtidas" to curtidas,
-        "favoritos" to favoritos
-    )
-}

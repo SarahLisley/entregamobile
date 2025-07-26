@@ -10,6 +10,10 @@ composeCompiler = "1.5.11"
 jvmTarget = "11"
 googleServices = "4.4.2"
 
+# Injeção de Dependência
+hilt = "2.48"
+hiltNavigationCompose = "1.1.0"
+
 # Jetpack & Compose
 coreKtx = "1.13.1"
 lifecycleRuntimeKtx = "2.8.2"
@@ -29,6 +33,9 @@ retrofit = "2.9.0"
 coil = "2.6.0"
 guava = "33.2.1-android"
 workManager = "2.9.0"
+
+# Tratamento de Erros e Retry
+retrofitLogging = "4.12.0"
 
 # Testes
 junit = "4.13.2"
@@ -62,12 +69,18 @@ firebase-auth = { group = "com.google.firebase", name = "firebase-auth-ktx" }
 firebase-database = { group = "com.google.firebase", name = "firebase-database-ktx" }
 firebase-firestore = { group = "com.google.firebase", name = "firebase-firestore-ktx" }
 
+# Hilt
+hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
+hilt-compiler = { group = "com.google.dagger", name = "hilt-compiler", version.ref = "hilt" }
+hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version.ref = "hiltNavigationCompose" }
+
 # Google Play Services
 play-services-location = { group = "com.google.android.gms", name = "play-services-location", version = "21.3.0" }
 
 # Networking
 gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
 okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
+okhttp-logging = { group = "com.squareup.okhttp3", name = "logging-interceptor", version.ref = "retrofitLogging" }
 retrofit = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
 retrofit-converter-gson = { group = "com.squareup.retrofit2", name = "converter-gson", version.ref = "retrofit" }
 
@@ -91,6 +104,7 @@ android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-kapt = { id = "org.jetbrains.kotlin.kapt", version.ref = "kotlinKapt" }
 google-services = { id = "com.google.gms.google-services", version.ref = "googleServices" }
+hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 
 [bundles]
 compose = ["androidx-ui", "androidx-ui-graphics", "androidx-ui-tooling-preview", "androidx-material3", "androidx-material-icons"]

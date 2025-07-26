@@ -11,18 +11,22 @@ import androidx.work.Constraints
 import androidx.work.NetworkType
 import com.example.myapplication.ui.screens.MainNav
 import com.example.myapplication.ui.theme.Theme
-import com.example.myapplication.data.UserPreferencesRepository
-import com.example.myapplication.data.DataSeeder
-import com.example.myapplication.data.AppDatabase
-import com.example.myapplication.data.ConnectivityObserver
-import com.example.myapplication.data.ReceitasRepository
-import com.example.myapplication.data.NutritionRepository
+import com.example.myapplication.core.data.repository.UserPreferencesRepository
+import com.example.myapplication.core.data.repository.DataSeeder
+import com.example.myapplication.core.data.repository.ReceitasRepository
+import com.example.myapplication.core.data.repository.NutritionRepository
+import com.example.myapplication.core.data.database.AppDatabase
+import com.example.myapplication.core.data.network.ConnectivityObserver
+import com.example.myapplication.core.data.storage.ImageStorageService
+import com.example.myapplication.core.ui.error.ErrorHandler
 import com.example.myapplication.workers.SyncWorker
+// import dagger.hilt.android.AndroidEntryPoint
 import java.util.Calendar
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+// import javax.inject.Inject
 
 
 fun isNightMode(): Boolean {
@@ -30,9 +34,33 @@ fun isNightMode(): Boolean {
     return hour >= 18 || hour < 6
 }
 
+// @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    
+    // @Inject
+    // lateinit var userPreferencesRepository: UserPreferencesRepository
+    
+    // @Inject
+    // lateinit var dataSeeder: DataSeeder
+    
+    private lateinit var userPreferencesRepository: UserPreferencesRepository
+    private lateinit var dataSeeder: DataSeeder
+    
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // Inicializar dependências manualmente
+        userPreferencesRepository = UserPreferencesRepository(this)
+        
+        // Criar instâncias dos repositórios necessários
+        val database = AppDatabase.getDatabase(this)
+        val connectivityObserver = ConnectivityObserver(this)
+        val imageStorageService = ImageStorageService()
+        val errorHandler = ErrorHandler()
+        val receitasRepository = ReceitasRepository(database.receitaDao(), connectivityObserver, imageStorageService, errorHandler)
+        val nutritionRepository = NutritionRepository(this)
+        
+        dataSeeder = DataSeeder(this, receitasRepository, nutritionRepository)
         
         // Configurar sincronização periódica com WorkManager
         configurarSincronizacao()
@@ -40,11 +68,8 @@ class MainActivity : ComponentActivity() {
         // Popular banco de dados com receitas predefinidas (apenas uma vez)
         seedDatabaseIfNeeded()
         
-        // Create repository outside of Compose to avoid LocalContext.current issues
-        val repo = UserPreferencesRepository(this)
-        
         setContent {
-            val darkModeEnabled by repo.isDarkModeEnabled.collectAsState(initial = isNightMode())
+            val darkModeEnabled by userPreferencesRepository.isDarkModeEnabled.collectAsState(initial = isNightMode())
             Theme(darkTheme = darkModeEnabled) {
                 MainNav()
             }
@@ -54,13 +79,6 @@ class MainActivity : ComponentActivity() {
     private fun seedDatabaseIfNeeded() {
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val database = AppDatabase.getDatabase(this@MainActivity)
-                val receitaDao = database.receitaDao()
-                val connectivityObserver = ConnectivityObserver(this@MainActivity)
-                val receitasRepository = ReceitasRepository(receitaDao, connectivityObserver)
-                val nutritionRepository = NutritionRepository()
-                
-                val dataSeeder = DataSeeder(this@MainActivity, receitasRepository, nutritionRepository)
                 dataSeeder.seedDatabaseIfNeeded()
             } catch (e: Exception) {
                 // Log error but don't crash the app
@@ -75,7 +93,7 @@ class MainActivity : ComponentActivity() {
             .build()
             
         val syncWorkRequest = PeriodicWorkRequestBuilder<SyncWorker>(
-            15, TimeUnit.MINUTES // Sincronizar a cada 15 minutos
+            2, TimeUnit.HOURS // Sincronizar a cada 2 horas para economizar bateria e dados
         )
             .setConstraints(constraints)
             .build()

@@ -5,13 +5,14 @@ import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.myapplication.data.ReceitasRepository
+import com.example.myapplication.core.data.repository.ReceitasRepository
+import com.example.myapplication.core.data.storage.ImageStorageService
+import com.example.myapplication.core.data.repository.NutritionRepository
+import com.example.myapplication.core.data.database.AppDatabase
+import com.example.myapplication.core.data.network.ConnectivityObserver
+import com.example.myapplication.core.data.database.entity.ReceitaEntity
+import com.example.myapplication.core.data.model.RecipeNutrition
 import com.example.myapplication.data.SupabaseImageUploader
-import com.example.myapplication.data.NutritionRepository
-import com.example.myapplication.data.AppDatabase
-import com.example.myapplication.data.ConnectivityObserver
-import com.example.myapplication.model.ReceitaEntity
-import com.example.myapplication.model.RecipeNutrition
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
@@ -30,8 +31,8 @@ class ReceitasViewModel(
     private val database = AppDatabase.getDatabase(app)
     private val receitaDao = database.receitaDao()
     private val connectivityObserver = ConnectivityObserver(app)
-    private val repository = ReceitasRepository(receitaDao, connectivityObserver)
-    private val nutritionRepository = NutritionRepository()
+    private val repository = ReceitasRepository(receitaDao, connectivityObserver, ImageStorageService(), com.example.myapplication.core.ui.error.ErrorHandler())
+    private val nutritionRepository = NutritionRepository(app)
     
     private val _uiState = MutableStateFlow<ReceitasUiState>(ReceitasUiState.Loading)
     val uiState: StateFlow<ReceitasUiState> = _uiState
@@ -91,12 +92,13 @@ class ReceitasViewModel(
         viewModelScope.launch {
             _uiState.value = ReceitasUiState.Loading
             try {
+                val id = System.currentTimeMillis().toString()
                 var imageUrl: String? = null
                 if (imagemUri != null) {
                     imageUrl = SupabaseImageUploader.uploadImage(context, imagemUri)
                 }
-                val id = System.currentTimeMillis().toString()
                 repository.salvarReceita(
+                    context = context,
                     id = id,
                     nome = nome,
                     descricaoCurta = descricaoCurta,
@@ -123,7 +125,7 @@ class ReceitasViewModel(
                 if (!imageUrl.isNullOrBlank()) {
                     SupabaseImageUploader.deleteImageByUrl(imageUrl)
                 }
-                repository.deletarReceita(id)
+                repository.deletarReceita(id, imageUrl)
                 _eventChannel.send("Receita deletada com sucesso!")
             } catch (e: Exception) {
                 _uiState.value = ReceitasUiState.Error(e.message ?: "Erro ao deletar receita")
@@ -230,7 +232,7 @@ class ReceitasViewModel(
                         _nutritionState.value = nutrition
                         _eventChannel.send("Informações nutricionais carregadas!")
                     },
-                    onFailure = { exception ->
+                    onFailure = { _ ->
                         // Prover dados nutricionais padrão quando a API falha
                         val fallbackNutrition = getFallbackNutritionData(recipeTitle)
                         _nutritionState.value = fallbackNutrition
@@ -267,22 +269,4 @@ class ReceitasViewModel(
     fun limparInformacoesNutricionais() {
         _nutritionState.value = null
     }
-}
-
-// Extensão para converter ReceitaEntity para Map
-private fun ReceitaEntity.toMap(): Map<String, Any?> {
-    return mapOf(
-        "id" to id,
-        "nome" to nome,
-        "descricaoCurta" to descricaoCurta,
-        "imagemUrl" to imagemUrl,
-        "ingredientes" to ingredientes,
-        "modoPreparo" to modoPreparo,
-        "tempoPreparo" to tempoPreparo,
-        "porcoes" to porcoes,
-        "userId" to userId,
-        "userEmail" to userEmail,
-        "curtidas" to curtidas,
-        "favoritos" to favoritos
-    )
 }

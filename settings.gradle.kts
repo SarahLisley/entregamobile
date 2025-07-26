@@ -19,3 +19,6 @@ dependencyResolutionManagement {
 
 rootProject.name = "MyApplication3"
 include(":app")
+include(":core-data")
+include(":core-ui")
+include(":feature-receitas")

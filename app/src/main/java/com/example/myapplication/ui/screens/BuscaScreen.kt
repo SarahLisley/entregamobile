@@ -6,11 +6,15 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.SearchOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
@@ -59,7 +63,7 @@ fun BuscaScreen(navController: NavHostController) {
                 title = { Text("Busca") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Filled.ArrowBack, contentDescription = "Voltar")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Voltar")
                     }
                 }
             )
@@ -90,48 +94,68 @@ fun BuscaScreen(navController: NavHostController) {
                     Text(msg)
                 }
             } else {
-                LazyColumn {
-                    items(filteredReceitas) { receita ->
-                        ReceitaCardFirebase(
-                            receita = receita.toMap(),
-                            onClick = {
-                                navController.navigate(AppScreens.DetalheScreen.createRoute(receita.id))
-                            },
-                            onEdit = {
-                                navController.navigate(AppScreens.DetalheScreen.createRoute(receita.id, startInEditMode = true))
-                            },
-                            onDelete = {
-                                receitasViewModel.deletarReceita(receita.id, receita.imagemUrl)
-                            },
-                            onCurtir = { id, userId, curtidas ->
-                                receitasViewModel.curtirReceita(id, userId, curtidas)
-                            },
-                            onFavoritar = { id, userId, favoritos ->
-                                receitasViewModel.favoritarReceita(id, userId, favoritos)
-                            }
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
+                if (filteredReceitas.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                imageVector = if (searchText.isBlank()) Icons.Filled.Search else Icons.Filled.SearchOff,
+                                contentDescription = "Busca vazia",
+                                modifier = Modifier.size(80.dp),
+                                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = if (searchText.isBlank()) "Nenhuma receita encontrada" else "Nenhum resultado para \"$searchText\"",
+                                style = MaterialTheme.typography.headlineSmall,
+                                textAlign = TextAlign.Center,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = if (searchText.isBlank()) 
+                                    "Digite o nome de uma receita ou ingrediente para começar a buscar" 
+                                else 
+                                    "Tente usar termos diferentes ou verificar a ortografia",
+                                style = MaterialTheme.typography.bodyMedium,
+                                textAlign = TextAlign.Center,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                            )
+                        }
+                    }
+                } else {
+                    LazyColumn {
+                        items(filteredReceitas) { receita ->
+                            ReceitaCardFirebase(
+                                receita = receita.toMap(),
+                                onClick = {
+                                    navController.navigate(AppScreens.DetalheScreen.createRoute(receita.id))
+                                },
+                                onEdit = {
+                                    navController.navigate(AppScreens.DetalheScreen.createRoute(receita.id, startInEditMode = true))
+                                },
+                                onDelete = {
+                                    receitasViewModel.deletarReceita(receita.id, receita.imagemUrl)
+                                },
+                                onCurtir = { id, userId, curtidas ->
+                                    receitasViewModel.curtirReceita(id, userId, curtidas)
+                                },
+                                onFavoritar = { id, userId, favoritos ->
+                                    receitasViewModel.favoritarReceita(id, userId, favoritos)
+                                }
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                        }
                     }
                 }
             }
         }
     }
-}
-
-// Extensão para converter ReceitaEntity para Map
-private fun com.example.myapplication.model.ReceitaEntity.toMap(): Map<String, Any?> {
-    return mapOf(
-        "id" to id,
-        "nome" to nome,
-        "descricaoCurta" to descricaoCurta,
-        "imagemUrl" to imagemUrl,
-        "ingredientes" to ingredientes,
-        "modoPreparo" to modoPreparo,
-        "tempoPreparo" to tempoPreparo,
-        "porcoes" to porcoes,
-        "userId" to userId,
-        "userEmail" to userEmail,
-        "curtidas" to curtidas,
-        "favoritos" to favoritos
-    )
 }

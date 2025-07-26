@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.kapt)
     alias(libs.plugins.google.services)
+    // alias(libs.plugins.hilt)
 }
 
 import java.util.Properties
@@ -65,6 +66,11 @@ android {
 }
 
 dependencies {
+    // Módulos internos
+    implementation(project(":core-data"))
+    implementation(project(":core-ui"))
+    implementation(project(":feature-receitas"))
+    
     // BOMs (Bill of Materials) - Gerenciam versões de outras bibliotecas
     implementation(platform(libs.androidx.compose.bom))
     implementation(platform(libs.firebase.bom))
@@ -96,9 +102,15 @@ dependencies {
     // Retrofit para integração com APIs
     implementation(libs.retrofit)
     implementation(libs.retrofit.converter.gson)
+    implementation(libs.okhttp.logging)
     
     // WorkManager para sincronização em background
     implementation(libs.work.manager)
+    
+    // Hilt para injeção de dependência
+    // implementation(libs.hilt.android)
+    // kapt(libs.hilt.compiler)
+    // implementation(libs.hilt.navigation.compose)
 
     // Dependências de Teste
     testImplementation(libs.junit)

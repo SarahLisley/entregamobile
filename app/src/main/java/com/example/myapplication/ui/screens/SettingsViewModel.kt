@@ -3,7 +3,7 @@ package com.example.myapplication.ui.screens
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.example.myapplication.data.UserPreferencesRepository
+import com.example.myapplication.core.data.repository.UserPreferencesRepository
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 

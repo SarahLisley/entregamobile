@@ -13,6 +13,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Info
@@ -57,6 +58,14 @@ fun DetalheScreen(
     var editIngredientes by remember { mutableStateOf("") }
     var editModoPreparo by remember { mutableStateOf("") }
     var editImagemUri by remember { mutableStateOf<Uri?>(null) }
+    
+    // Estados de validação
+    var nomeError by remember { mutableStateOf("") }
+    var descricaoError by remember { mutableStateOf("") }
+    var tempoError by remember { mutableStateOf("") }
+    var porcoesError by remember { mutableStateOf("") }
+    var ingredientesError by remember { mutableStateOf("") }
+    var modoPreparoError by remember { mutableStateOf("") }
     val imagePickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         if (uri != null) editImagemUri = uri
     }
@@ -92,6 +101,73 @@ fun DetalheScreen(
             receitasViewModel.limparInformacoesNutricionais()
         }
     }
+    
+    // Funções de validação
+    fun validateForm(): Boolean {
+        var isValid = true
+        
+        // Validar nome
+        if (editNome.isBlank()) {
+            nomeError = "Nome é obrigatório"
+            isValid = false
+        } else if (editNome.length < 3) {
+            nomeError = "Nome deve ter pelo menos 3 caracteres"
+            isValid = false
+        } else {
+            nomeError = ""
+        }
+        
+        // Validar descrição
+        if (editDescricao.isBlank()) {
+            descricaoError = "Descrição é obrigatória"
+            isValid = false
+        } else if (editDescricao.length < 10) {
+            descricaoError = "Descrição deve ter pelo menos 10 caracteres"
+            isValid = false
+        } else {
+            descricaoError = ""
+        }
+        
+        // Validar tempo
+        if (editTempo.isBlank()) {
+            tempoError = "Tempo de preparo é obrigatório"
+            isValid = false
+        } else {
+            tempoError = ""
+        }
+        
+        // Validar porções
+        val porcoes = editPorcoes.toIntOrNull()
+        if (editPorcoes.isBlank()) {
+            porcoesError = "Número de porções é obrigatório"
+            isValid = false
+        } else if (porcoes == null || porcoes <= 0) {
+            porcoesError = "Porções deve ser um número maior que 0"
+            isValid = false
+        } else {
+            porcoesError = ""
+        }
+        
+        // Validar ingredientes
+        val ingredientesList = editIngredientes.split('\n').filter { it.isNotBlank() }
+        if (ingredientesList.isEmpty()) {
+            ingredientesError = "Pelo menos um ingrediente é obrigatório"
+            isValid = false
+        } else {
+            ingredientesError = ""
+        }
+        
+        // Validar modo de preparo
+        val modoPreparoList = editModoPreparo.split('\n').filter { it.isNotBlank() }
+        if (modoPreparoList.isEmpty()) {
+            modoPreparoError = "Pelo menos um passo é obrigatório"
+            isValid = false
+        } else {
+            modoPreparoError = ""
+        }
+        
+        return isValid
+    }
 
     Scaffold(
         topBar = {
@@ -99,7 +175,7 @@ fun DetalheScreen(
                 title = { Text(receita?.nome ?: "Detalhes") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Filled.ArrowBack, contentDescription = "Voltar")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Voltar")
                     }
                 },
                 actions = {
@@ -251,32 +327,103 @@ fun DetalheScreen(
                             Text(if (editImagemUri == null) "Selecionar nova imagem" else "Nova Imagem Selecionada!")
                         }
                         Spacer(Modifier.height(8.dp))
-                        OutlinedTextField(value = editNome, onValueChange = { editNome = it }, label = { Text("Nome da receita") })
-                        OutlinedTextField(value = editDescricao, onValueChange = { editDescricao = it }, label = { Text("Descrição curta") })
-                        OutlinedTextField(value = editTempo, onValueChange = { editTempo = it }, label = { Text("Tempo de preparo") })
-                        OutlinedTextField(value = editPorcoes, onValueChange = { editPorcoes = it.filter { c -> c.isDigit() } }, label = { Text("Porções") })
-                        OutlinedTextField(value = editIngredientes, onValueChange = { editIngredientes = it }, label = { Text("Ingredientes (um por linha)") }, maxLines = 4)
-                        OutlinedTextField(value = editModoPreparo, onValueChange = { editModoPreparo = it }, label = { Text("Modo de preparo (um por linha)") }, maxLines = 4)
+                        
+                        OutlinedTextField(
+                            value = editNome, 
+                            onValueChange = { 
+                                editNome = it
+                                if (nomeError.isNotEmpty()) nomeError = ""
+                            }, 
+                            label = { Text("Nome da receita") },
+                            isError = nomeError.isNotEmpty(),
+                            supportingText = { if (nomeError.isNotEmpty()) Text(nomeError) }
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        
+                        OutlinedTextField(
+                            value = editDescricao, 
+                            onValueChange = { 
+                                editDescricao = it
+                                if (descricaoError.isNotEmpty()) descricaoError = ""
+                            }, 
+                            label = { Text("Descrição curta") },
+                            isError = descricaoError.isNotEmpty(),
+                            supportingText = { if (descricaoError.isNotEmpty()) Text(descricaoError) }
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        
+                        OutlinedTextField(
+                            value = editTempo, 
+                            onValueChange = { 
+                                editTempo = it
+                                if (tempoError.isNotEmpty()) tempoError = ""
+                            }, 
+                            label = { Text("Tempo de preparo") },
+                            isError = tempoError.isNotEmpty(),
+                            supportingText = { if (tempoError.isNotEmpty()) Text(tempoError) }
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        
+                        OutlinedTextField(
+                            value = editPorcoes, 
+                            onValueChange = { 
+                                editPorcoes = it.filter { c -> c.isDigit() }
+                                if (porcoesError.isNotEmpty()) porcoesError = ""
+                            }, 
+                            label = { Text("Porções") },
+                            isError = porcoesError.isNotEmpty(),
+                            supportingText = { if (porcoesError.isNotEmpty()) Text(porcoesError) }
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        
+                        OutlinedTextField(
+                            value = editIngredientes, 
+                            onValueChange = { 
+                                editIngredientes = it
+                                if (ingredientesError.isNotEmpty()) ingredientesError = ""
+                            }, 
+                            label = { Text("Ingredientes (um por linha)") }, 
+                            maxLines = 4,
+                            isError = ingredientesError.isNotEmpty(),
+                            supportingText = { if (ingredientesError.isNotEmpty()) Text(ingredientesError) }
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        
+                        OutlinedTextField(
+                            value = editModoPreparo, 
+                            onValueChange = { 
+                                editModoPreparo = it
+                                if (modoPreparoError.isNotEmpty()) modoPreparoError = ""
+                            }, 
+                            label = { Text("Modo de preparo (um por linha)") }, 
+                            maxLines = 4,
+                            isError = modoPreparoError.isNotEmpty(),
+                            supportingText = { if (modoPreparoError.isNotEmpty()) Text(modoPreparoError) }
+                        )
                     }
                 },
                 confirmButton = {
                     Button(
                         onClick = {
-                            receitasViewModel.editarReceita(
-                                context = context,
-                                id = receita.id,
-                                nome = editNome,
-                                descricaoCurta = editDescricao,
-                                novaImagemUri = editImagemUri,
-                                ingredientes = editIngredientes.split('\n').filter { it.isNotBlank() },
-                                modoPreparo = editModoPreparo.split('\n').filter { it.isNotBlank() },
-                                tempoPreparo = editTempo,
-                                porcoes = editPorcoes.toIntOrNull() ?: 1,
-                                imagemUrlAntiga = receita.imagemUrl
-                            )
-                            showEditDialog = false
+                            if (validateForm()) {
+                                receitasViewModel.editarReceita(
+                                    context = context,
+                                    id = receita.id,
+                                    nome = editNome,
+                                    descricaoCurta = editDescricao,
+                                    novaImagemUri = editImagemUri,
+                                    ingredientes = editIngredientes.split('\n').filter { it.isNotBlank() },
+                                    modoPreparo = editModoPreparo.split('\n').filter { it.isNotBlank() },
+                                    tempoPreparo = editTempo,
+                                    porcoes = editPorcoes.toIntOrNull() ?: 1,
+                                    imagemUrlAntiga = receita.imagemUrl
+                                )
+                                showEditDialog = false
+                            }
                         },
-                        enabled = editNome.isNotBlank() && editDescricao.isNotBlank()
+                        enabled = editNome.isNotBlank() && editDescricao.isNotBlank() && 
+                                 editTempo.isNotBlank() && editPorcoes.isNotBlank() &&
+                                 editIngredientes.isNotBlank() && editModoPreparo.isNotBlank()
                     ) { Text("Salvar") }
                 },
                 dismissButton = { Button(onClick = { showEditDialog = false }) { Text("Cancelar") } }

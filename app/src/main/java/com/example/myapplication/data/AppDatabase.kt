@@ -6,11 +6,13 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import com.example.myapplication.model.ReceitaEntity
+import com.example.myapplication.model.NutritionCacheEntity
 
-@Database(entities = [ReceitaEntity::class], version = 4, exportSchema = false)
+@Database(entities = [ReceitaEntity::class, NutritionCacheEntity::class], version = 5, exportSchema = false)
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun receitaDao(): ReceitaDao
+    abstract fun nutritionCacheDao(): NutritionCacheDao
 
     companion object {
         @Volatile
