@@ -6,7 +6,10 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -130,95 +133,99 @@ fun DetalheScreen(
                 }
             }
             receita != null -> {
-                Column(
+                LazyColumn(
                     modifier = Modifier
                         .padding(paddingValues)
                         .padding(16.dp)
                         .fillMaxSize()
                 ) {
-                    val imagemUrl = receita.imagemUrl
-                    if (imagemUrl.isNotBlank()) {
-                        AsyncImage(
-                            model = imagemUrl,
-                            contentDescription = receita.nome,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(250.dp)
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(text = receita.nome, style = MaterialTheme.typography.headlineMedium)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(text = receita.descricaoCurta, style = MaterialTheme.typography.bodyLarge)
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(text = "Ingredientes:", style = MaterialTheme.typography.titleMedium)
-                    receita.ingredientes.forEach { ingrediente ->
-                        Text("• $ingrediente", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 8.dp, top = 4.dp))
-                    }
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(text = "Modo de Preparo:", style = MaterialTheme.typography.titleMedium)
-                    receita.modoPreparo.forEachIndexed { index, passo ->
-                        Text("${index + 1}. $passo", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 8.dp, top = 4.dp))
+                    item {
+                        val imagemUrl = receita.imagemUrl
+                        if (imagemUrl.isNotBlank()) {
+                            AsyncImage(
+                                model = imagemUrl,
+                                contentDescription = receita.nome,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(250.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(text = receita.nome, style = MaterialTheme.typography.headlineMedium)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(text = receita.descricaoCurta, style = MaterialTheme.typography.bodyLarge)
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(text = "Ingredientes:", style = MaterialTheme.typography.titleMedium)
+                        receita.ingredientes.forEach { ingrediente ->
+                            Text("• $ingrediente", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 8.dp, top = 4.dp))
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(text = "Modo de Preparo:", style = MaterialTheme.typography.titleMedium)
+                        receita.modoPreparo.forEachIndexed { index, passo ->
+                            Text("${index + 1}. $passo", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 8.dp, top = 4.dp))
+                        }
                     }
                     
                     // Informações Nutricionais
                     if (nutritionState != null) {
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(text = "Informações Nutricionais:", style = MaterialTheme.typography.titleMedium)
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-                        ) {
-                            Column(modifier = Modifier.padding(16.dp)) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Text("Calorias:", style = MaterialTheme.typography.bodyMedium)
-                                    Text("${nutritionState!!.calories.toInt()} kcal", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
-                                }
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Text("Proteínas:", style = MaterialTheme.typography.bodyMedium)
-                                    Text("${nutritionState!!.protein.toInt()}g", style = MaterialTheme.typography.bodyMedium)
-                                }
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Text("Gorduras:", style = MaterialTheme.typography.bodyMedium)
-                                    Text("${nutritionState!!.fat.toInt()}g", style = MaterialTheme.typography.bodyMedium)
-                                }
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Text("Carboidratos:", style = MaterialTheme.typography.bodyMedium)
-                                    Text("${nutritionState!!.carbohydrates.toInt()}g", style = MaterialTheme.typography.bodyMedium)
-                                }
-                                nutritionState!!.fiber?.let { fiber ->
-                                    Spacer(modifier = Modifier.height(8.dp))
+                        item {
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(text = "Informações Nutricionais:", style = MaterialTheme.typography.titleMedium)
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                            ) {
+                                Column(modifier = Modifier.padding(16.dp)) {
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.SpaceBetween
                                     ) {
-                                        Text("Fibras:", style = MaterialTheme.typography.bodyMedium)
-                                        Text("${fiber.toInt()}g", style = MaterialTheme.typography.bodyMedium)
+                                        Text("Calorias:", style = MaterialTheme.typography.bodyMedium)
+                                        Text("${nutritionState!!.calories.toInt()} kcal", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
                                     }
-                                }
-                                nutritionState!!.sugar?.let { sugar ->
                                     Spacer(modifier = Modifier.height(8.dp))
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.SpaceBetween
                                     ) {
-                                        Text("Açúcares:", style = MaterialTheme.typography.bodyMedium)
-                                        Text("${sugar.toInt()}g", style = MaterialTheme.typography.bodyMedium)
+                                        Text("Proteínas:", style = MaterialTheme.typography.bodyMedium)
+                                        Text("${nutritionState!!.protein.toInt()}g", style = MaterialTheme.typography.bodyMedium)
+                                    }
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Text("Gorduras:", style = MaterialTheme.typography.bodyMedium)
+                                        Text("${nutritionState!!.fat.toInt()}g", style = MaterialTheme.typography.bodyMedium)
+                                    }
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Text("Carboidratos:", style = MaterialTheme.typography.bodyMedium)
+                                        Text("${nutritionState!!.carbohydrates.toInt()}g", style = MaterialTheme.typography.bodyMedium)
+                                    }
+                                    nutritionState!!.fiber?.let { fiber ->
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Text("Fibras:", style = MaterialTheme.typography.bodyMedium)
+                                            Text("${fiber.toInt()}g", style = MaterialTheme.typography.bodyMedium)
+                                        }
+                                    }
+                                    nutritionState!!.sugar?.let { sugar ->
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Text("Açúcares:", style = MaterialTheme.typography.bodyMedium)
+                                            Text("${sugar.toInt()}g", style = MaterialTheme.typography.bodyMedium)
+                                        }
                                     }
                                 }
                             }

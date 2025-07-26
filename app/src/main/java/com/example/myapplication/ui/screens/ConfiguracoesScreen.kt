@@ -27,6 +27,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Storage
 import java.util.Calendar
 import android.app.TimePickerDialog
 import androidx.compose.runtime.mutableStateOf
@@ -37,10 +38,14 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.setValue
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.foundation.layout.size
 import com.example.myapplication.notifications.NotificationHelper
 import com.example.myapplication.data.ReceitasRepository
 import com.example.myapplication.data.AppDatabase
 import com.example.myapplication.data.ConnectivityObserver
+import com.example.myapplication.data.DataSeeder
+import com.example.myapplication.data.NutritionRepository
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.*
 import android.widget.Toast
@@ -53,6 +58,7 @@ fun ConfiguracoesScreen(
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val viewModel: SettingsViewModel = viewModel(
         factory = SettingsViewModelFactory(
             UserPreferencesRepository(context)
@@ -62,11 +68,14 @@ fun ConfiguracoesScreen(
     val receitaDao = remember { database.receitaDao() }
     val connectivityObserver = remember { ConnectivityObserver(context) }
     val receitasRepository = remember { ReceitasRepository(receitaDao, connectivityObserver) }
+    val nutritionRepository = remember { NutritionRepository() }
+    val dataSeeder = remember { DataSeeder(context, receitasRepository, nutritionRepository) }
     var receitasFirebase by remember { mutableStateOf<List<Map<String, Any?>>>(emptyList()) }
     var showReceitaDialog by remember { mutableStateOf(false) }
     var receitaSelecionada by remember { mutableStateOf<Map<String, Any?>?>(null) }
     var showTimePicker by remember { mutableStateOf(false) }
     var showPermissionDialog by remember { mutableStateOf(false) }
+    var isSeedingDatabase by remember { mutableStateOf(false) }
     val darkMode by viewModel.isDarkModeEnabled.collectAsState()
 
     LaunchedEffect(Unit) {
@@ -113,6 +122,42 @@ fun ConfiguracoesScreen(
                 Icon(Icons.Filled.Notifications, contentDescription = "Agendar lembrete")
                 Spacer(Modifier.width(8.dp))
                 Text("Escolher Receita e Horário")
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // Botão para popular banco de dados (apenas para admin)
+            Button(
+                onClick = {
+                    scope.launch {
+                        isSeedingDatabase = true
+                        try {
+                            val success = dataSeeder.forcePopulateDatabase()
+                            if (success) {
+                                Toast.makeText(context, "Banco de dados populado com sucesso!", Toast.LENGTH_LONG).show()
+                            } else {
+                                Toast.makeText(context, "Erro ao popular banco de dados", Toast.LENGTH_LONG).show()
+                            }
+                        } catch (e: Exception) {
+                            Toast.makeText(context, "Erro: ${e.message}", Toast.LENGTH_LONG).show()
+                        } finally {
+                            isSeedingDatabase = false
+                        }
+                    }
+                },
+                enabled = !isSeedingDatabase,
+                modifier = Modifier.padding(top = 8.dp)
+            ) {
+                if (isSeedingDatabase) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Icon(Icons.Filled.Storage, contentDescription = "Popular banco")
+                }
+                Spacer(Modifier.width(8.dp))
+                Text(if (isSeedingDatabase) "Populando..." else "Popular Banco de Dados")
             }
             
             // Diálogo de permissão
