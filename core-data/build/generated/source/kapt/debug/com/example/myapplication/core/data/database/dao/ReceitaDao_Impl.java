@@ -55,7 +55,7 @@ public final class ReceitaDao_Impl implements ReceitaDao {
       @Override
       @NonNull
       protected String createQuery() {
-        return "INSERT OR REPLACE INTO `receitas` (`id`,`nome`,`descricaoCurta`,`imagemUrl`,`ingredientes`,`modoPreparo`,`tempoPreparo`,`porcoes`,`userId`,`userEmail`,`curtidas`,`favoritos`,`isSynced`,`lastModified`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+        return "INSERT OR REPLACE INTO `receitas` (`id`,`nome`,`descricaoCurta`,`imagemUrl`,`ingredientes`,`modoPreparo`,`tempoPreparo`,`porcoes`,`userId`,`userEmail`,`curtidas`,`favoritos`,`tags`,`isSynced`,`lastModified`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
       }
 
       @Override
@@ -121,16 +121,22 @@ public final class ReceitaDao_Impl implements ReceitaDao {
         } else {
           statement.bindString(12, _tmp_3);
         }
-        final int _tmp_4 = entity.isSynced() ? 1 : 0;
-        statement.bindLong(13, _tmp_4);
-        statement.bindLong(14, entity.getLastModified());
+        final String _tmp_4 = __converters.fromList(entity.getTags());
+        if (_tmp_4 == null) {
+          statement.bindNull(13);
+        } else {
+          statement.bindString(13, _tmp_4);
+        }
+        final int _tmp_5 = entity.isSynced() ? 1 : 0;
+        statement.bindLong(14, _tmp_5);
+        statement.bindLong(15, entity.getLastModified());
       }
     };
     this.__updateAdapterOfReceitaEntity = new EntityDeletionOrUpdateAdapter<ReceitaEntity>(__db) {
       @Override
       @NonNull
       protected String createQuery() {
-        return "UPDATE OR ABORT `receitas` SET `id` = ?,`nome` = ?,`descricaoCurta` = ?,`imagemUrl` = ?,`ingredientes` = ?,`modoPreparo` = ?,`tempoPreparo` = ?,`porcoes` = ?,`userId` = ?,`userEmail` = ?,`curtidas` = ?,`favoritos` = ?,`isSynced` = ?,`lastModified` = ? WHERE `id` = ?";
+        return "UPDATE OR ABORT `receitas` SET `id` = ?,`nome` = ?,`descricaoCurta` = ?,`imagemUrl` = ?,`ingredientes` = ?,`modoPreparo` = ?,`tempoPreparo` = ?,`porcoes` = ?,`userId` = ?,`userEmail` = ?,`curtidas` = ?,`favoritos` = ?,`tags` = ?,`isSynced` = ?,`lastModified` = ? WHERE `id` = ?";
       }
 
       @Override
@@ -196,13 +202,19 @@ public final class ReceitaDao_Impl implements ReceitaDao {
         } else {
           statement.bindString(12, _tmp_3);
         }
-        final int _tmp_4 = entity.isSynced() ? 1 : 0;
-        statement.bindLong(13, _tmp_4);
-        statement.bindLong(14, entity.getLastModified());
-        if (entity.getId() == null) {
-          statement.bindNull(15);
+        final String _tmp_4 = __converters.fromList(entity.getTags());
+        if (_tmp_4 == null) {
+          statement.bindNull(13);
         } else {
-          statement.bindString(15, entity.getId());
+          statement.bindString(13, _tmp_4);
+        }
+        final int _tmp_5 = entity.isSynced() ? 1 : 0;
+        statement.bindLong(14, _tmp_5);
+        statement.bindLong(15, entity.getLastModified());
+        if (entity.getId() == null) {
+          statement.bindNull(16);
+        } else {
+          statement.bindString(16, entity.getId());
         }
       }
     };
@@ -451,6 +463,7 @@ public final class ReceitaDao_Impl implements ReceitaDao {
           final int _cursorIndexOfUserEmail = CursorUtil.getColumnIndexOrThrow(_cursor, "userEmail");
           final int _cursorIndexOfCurtidas = CursorUtil.getColumnIndexOrThrow(_cursor, "curtidas");
           final int _cursorIndexOfFavoritos = CursorUtil.getColumnIndexOrThrow(_cursor, "favoritos");
+          final int _cursorIndexOfTags = CursorUtil.getColumnIndexOrThrow(_cursor, "tags");
           final int _cursorIndexOfIsSynced = CursorUtil.getColumnIndexOrThrow(_cursor, "isSynced");
           final int _cursorIndexOfLastModified = CursorUtil.getColumnIndexOrThrow(_cursor, "lastModified");
           final List<ReceitaEntity> _result = new ArrayList<ReceitaEntity>(_cursor.getCount());
@@ -532,13 +545,21 @@ public final class ReceitaDao_Impl implements ReceitaDao {
               _tmp_3 = _cursor.getString(_cursorIndexOfFavoritos);
             }
             _tmpFavoritos = __converters.fromString(_tmp_3);
+            final List<String> _tmpTags;
+            final String _tmp_4;
+            if (_cursor.isNull(_cursorIndexOfTags)) {
+              _tmp_4 = null;
+            } else {
+              _tmp_4 = _cursor.getString(_cursorIndexOfTags);
+            }
+            _tmpTags = __converters.fromString(_tmp_4);
             final boolean _tmpIsSynced;
-            final int _tmp_4;
-            _tmp_4 = _cursor.getInt(_cursorIndexOfIsSynced);
-            _tmpIsSynced = _tmp_4 != 0;
+            final int _tmp_5;
+            _tmp_5 = _cursor.getInt(_cursorIndexOfIsSynced);
+            _tmpIsSynced = _tmp_5 != 0;
             final long _tmpLastModified;
             _tmpLastModified = _cursor.getLong(_cursorIndexOfLastModified);
-            _item = new ReceitaEntity(_tmpId,_tmpNome,_tmpDescricaoCurta,_tmpImagemUrl,_tmpIngredientes,_tmpModoPreparo,_tmpTempoPreparo,_tmpPorcoes,_tmpUserId,_tmpUserEmail,_tmpCurtidas,_tmpFavoritos,_tmpIsSynced,_tmpLastModified);
+            _item = new ReceitaEntity(_tmpId,_tmpNome,_tmpDescricaoCurta,_tmpImagemUrl,_tmpIngredientes,_tmpModoPreparo,_tmpTempoPreparo,_tmpPorcoes,_tmpUserId,_tmpUserEmail,_tmpCurtidas,_tmpFavoritos,_tmpTags,_tmpIsSynced,_tmpLastModified);
             _result.add(_item);
           }
           return _result;
@@ -584,6 +605,7 @@ public final class ReceitaDao_Impl implements ReceitaDao {
           final int _cursorIndexOfUserEmail = CursorUtil.getColumnIndexOrThrow(_cursor, "userEmail");
           final int _cursorIndexOfCurtidas = CursorUtil.getColumnIndexOrThrow(_cursor, "curtidas");
           final int _cursorIndexOfFavoritos = CursorUtil.getColumnIndexOrThrow(_cursor, "favoritos");
+          final int _cursorIndexOfTags = CursorUtil.getColumnIndexOrThrow(_cursor, "tags");
           final int _cursorIndexOfIsSynced = CursorUtil.getColumnIndexOrThrow(_cursor, "isSynced");
           final int _cursorIndexOfLastModified = CursorUtil.getColumnIndexOrThrow(_cursor, "lastModified");
           final ReceitaEntity _result;
@@ -664,13 +686,21 @@ public final class ReceitaDao_Impl implements ReceitaDao {
               _tmp_3 = _cursor.getString(_cursorIndexOfFavoritos);
             }
             _tmpFavoritos = __converters.fromString(_tmp_3);
+            final List<String> _tmpTags;
+            final String _tmp_4;
+            if (_cursor.isNull(_cursorIndexOfTags)) {
+              _tmp_4 = null;
+            } else {
+              _tmp_4 = _cursor.getString(_cursorIndexOfTags);
+            }
+            _tmpTags = __converters.fromString(_tmp_4);
             final boolean _tmpIsSynced;
-            final int _tmp_4;
-            _tmp_4 = _cursor.getInt(_cursorIndexOfIsSynced);
-            _tmpIsSynced = _tmp_4 != 0;
+            final int _tmp_5;
+            _tmp_5 = _cursor.getInt(_cursorIndexOfIsSynced);
+            _tmpIsSynced = _tmp_5 != 0;
             final long _tmpLastModified;
             _tmpLastModified = _cursor.getLong(_cursorIndexOfLastModified);
-            _result = new ReceitaEntity(_tmpId,_tmpNome,_tmpDescricaoCurta,_tmpImagemUrl,_tmpIngredientes,_tmpModoPreparo,_tmpTempoPreparo,_tmpPorcoes,_tmpUserId,_tmpUserEmail,_tmpCurtidas,_tmpFavoritos,_tmpIsSynced,_tmpLastModified);
+            _result = new ReceitaEntity(_tmpId,_tmpNome,_tmpDescricaoCurta,_tmpImagemUrl,_tmpIngredientes,_tmpModoPreparo,_tmpTempoPreparo,_tmpPorcoes,_tmpUserId,_tmpUserEmail,_tmpCurtidas,_tmpFavoritos,_tmpTags,_tmpIsSynced,_tmpLastModified);
           } else {
             _result = null;
           }
@@ -706,6 +736,7 @@ public final class ReceitaDao_Impl implements ReceitaDao {
           final int _cursorIndexOfUserEmail = CursorUtil.getColumnIndexOrThrow(_cursor, "userEmail");
           final int _cursorIndexOfCurtidas = CursorUtil.getColumnIndexOrThrow(_cursor, "curtidas");
           final int _cursorIndexOfFavoritos = CursorUtil.getColumnIndexOrThrow(_cursor, "favoritos");
+          final int _cursorIndexOfTags = CursorUtil.getColumnIndexOrThrow(_cursor, "tags");
           final int _cursorIndexOfIsSynced = CursorUtil.getColumnIndexOrThrow(_cursor, "isSynced");
           final int _cursorIndexOfLastModified = CursorUtil.getColumnIndexOrThrow(_cursor, "lastModified");
           final List<ReceitaEntity> _result = new ArrayList<ReceitaEntity>(_cursor.getCount());
@@ -787,13 +818,21 @@ public final class ReceitaDao_Impl implements ReceitaDao {
               _tmp_3 = _cursor.getString(_cursorIndexOfFavoritos);
             }
             _tmpFavoritos = __converters.fromString(_tmp_3);
+            final List<String> _tmpTags;
+            final String _tmp_4;
+            if (_cursor.isNull(_cursorIndexOfTags)) {
+              _tmp_4 = null;
+            } else {
+              _tmp_4 = _cursor.getString(_cursorIndexOfTags);
+            }
+            _tmpTags = __converters.fromString(_tmp_4);
             final boolean _tmpIsSynced;
-            final int _tmp_4;
-            _tmp_4 = _cursor.getInt(_cursorIndexOfIsSynced);
-            _tmpIsSynced = _tmp_4 != 0;
+            final int _tmp_5;
+            _tmp_5 = _cursor.getInt(_cursorIndexOfIsSynced);
+            _tmpIsSynced = _tmp_5 != 0;
             final long _tmpLastModified;
             _tmpLastModified = _cursor.getLong(_cursorIndexOfLastModified);
-            _item = new ReceitaEntity(_tmpId,_tmpNome,_tmpDescricaoCurta,_tmpImagemUrl,_tmpIngredientes,_tmpModoPreparo,_tmpTempoPreparo,_tmpPorcoes,_tmpUserId,_tmpUserEmail,_tmpCurtidas,_tmpFavoritos,_tmpIsSynced,_tmpLastModified);
+            _item = new ReceitaEntity(_tmpId,_tmpNome,_tmpDescricaoCurta,_tmpImagemUrl,_tmpIngredientes,_tmpModoPreparo,_tmpTempoPreparo,_tmpPorcoes,_tmpUserId,_tmpUserEmail,_tmpCurtidas,_tmpFavoritos,_tmpTags,_tmpIsSynced,_tmpLastModified);
             _result.add(_item);
           }
           return _result;

@@ -4,23 +4,20 @@ import android.content.Context
 import android.util.Log
 import com.example.myapplication.core.data.model.RecipeNutrition
 import com.example.myapplication.core.data.database.entity.NutritionCacheEntity
-import com.example.myapplication.core.data.network.NutritionApiService
+import com.example.myapplication.core.data.database.entity.NutritionDataEntity
+import com.example.myapplication.core.data.database.entity.ReceitaEntity
+import com.example.myapplication.core.data.network.NutritionService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
 
-class NutritionRepository(private val context: Context) {
+class NutritionRepository(
+    private val context: Context,
+    private val nutritionService: NutritionService
+) {
     
     private val database = com.example.myapplication.core.data.database.AppDatabase.getDatabase(context)
     private val nutritionCacheDao = database.nutritionCacheDao()
-    
-    private val retrofit = Retrofit.Builder()
-        .baseUrl("https://api.spoonacular.com/")
-        .addConverterFactory(GsonConverterFactory.create())
-        .build()
-    
-    private val apiService = retrofit.create(NutritionApiService::class.java)
+    private val nutritionDataDao = database.nutritionDataDao()
     
     suspend fun getNutritionInfo(recipeTitle: String): Result<RecipeNutrition> {
         return withContext(Dispatchers.IO) {
@@ -51,8 +48,8 @@ class NutritionRepository(private val context: Context) {
                     }
                 }
                 
-                // Se não está no cache ou expirou, buscar na API
-                val result = searchFromAPI(recipeTitle)
+                // Se não está no cache ou expirou, buscar na API Gemini
+                val result = searchFromGeminiAPI(recipeTitle)
                 
                 // Se encontrou na API, salvar no cache
                 if (result.isSuccess) {
@@ -79,117 +76,101 @@ class NutritionRepository(private val context: Context) {
             }
         }
     }
-    
-    private suspend fun searchFromAPI(recipeTitle: String): Result<RecipeNutrition> {
-        try {
-            Log.d("NutritionAPI", "Buscando na API: $recipeTitle")
-            
-            // Strategy 1: Try with original title
-            val result = trySearchStrategies(recipeTitle)
-            if (result.isSuccess) {
-                return result
-            }
-            
-            // Strategy 2: Try with English translation for common recipes
-            val englishTitle = translateToEnglish(recipeTitle)
-            if (englishTitle != recipeTitle) {
-                Log.d("NutritionAPI", "Tentando com tradução: $englishTitle")
-                val translatedResult = trySearchStrategies(englishTitle)
-                if (translatedResult.isSuccess) {
-                    return translatedResult
+
+    suspend fun getNutritionInfoForRecipe(receita: ReceitaEntity): Result<RecipeNutrition> {
+        return withContext(Dispatchers.IO) {
+            try {
+                Log.d("NutritionAPI", "Buscando informações nutricionais para receita: ${receita.id}")
+                
+                // Primeiro, verificar se já temos dados salvos para esta receita
+                val savedNutrition = nutritionDataDao.getNutritionDataByReceitaId(receita.id)
+                if (savedNutrition != null) {
+                    Log.d("NutritionAPI", "Dados nutricionais encontrados no banco para receita: ${receita.id}")
+                    return@withContext Result.success(
+                        RecipeNutrition(
+                            calories = savedNutrition.calories,
+                            protein = savedNutrition.protein,
+                            fat = savedNutrition.fat,
+                            carbohydrates = savedNutrition.carbohydrates,
+                            fiber = savedNutrition.fiber,
+                            sugar = savedNutrition.sugar
+                        )
+                    )
                 }
-            }
-            
-            // Strategy 3: Try with simplified title
-            val simplifiedTitle = simplifyTitle(recipeTitle)
-            if (simplifiedTitle != recipeTitle) {
-                Log.d("NutritionAPI", "Tentando com título simplificado: $simplifiedTitle")
-                val simplifiedResult = trySearchStrategies(simplifiedTitle)
-                if (simplifiedResult.isSuccess) {
-                    return simplifiedResult
+                
+                // Se não tem dados salvos, buscar na API Gemini
+                val result = searchFromGeminiAPIForRecipe(receita)
+                
+                // Se encontrou na API, salvar no banco de dados
+                if (result.isSuccess) {
+                    val nutrition = result.getOrNull()
+                    if (nutrition != null) {
+                        val nutritionEntity = NutritionDataEntity(
+                            id = "${receita.id}_nutrition_${System.currentTimeMillis()}",
+                            receitaId = receita.id,
+                            calories = nutrition.calories,
+                            protein = nutrition.protein,
+                            fat = nutrition.fat,
+                            carbohydrates = nutrition.carbohydrates,
+                            fiber = nutrition.fiber,
+                            sugar = nutrition.sugar,
+                            isSynced = false
+                        )
+                        nutritionDataDao.insertNutritionData(nutritionEntity)
+                        Log.d("NutritionAPI", "Dados nutricionais salvos no banco para receita: ${receita.id}")
+                    }
                 }
+                
+                result
+            } catch (e: Exception) {
+                Log.e("NutritionAPI", "Erro ao buscar informações nutricionais para receita: ${e.message}")
+                Result.failure(e)
             }
-            
-            return result // Return the original failure
-        } catch (e: Exception) {
-            Log.e("NutritionAPI", "Erro na busca da API: ${e.message}")
-            return Result.failure(e)
         }
     }
     
-    private suspend fun trySearchStrategies(recipeTitle: String): Result<RecipeNutrition> {
-        // Strategy 1: Try complexSearch first (better for recipes)
+    private suspend fun searchFromGeminiAPI(recipeTitle: String): Result<RecipeNutrition> {
         try {
-            Log.d("NutritionAPI", "Tentando complexSearch...")
-            val response = apiService.searchRecipesWithNutrition(recipeTitle)
-            Log.d("NutritionAPI", "Resposta complexSearch: ${response.results?.size ?: 0} resultados")
+            Log.d("NutritionAPI", "Buscando na API Gemini: $recipeTitle")
             
-            if (response.results?.isNotEmpty() == true) {
-                val nutrition = response.results.first().nutrition
-                if (nutrition != null) {
-                    val nutrients = nutrition.nutrients ?: emptyList()
-                    
-                    val calories = nutrition.calories ?: 0.0
-                    val protein = nutrients.find { it.name?.contains("Protein", ignoreCase = true) == true }?.amount ?: 0.0
-                    val fat = nutrients.find { it.name?.contains("Fat", ignoreCase = true) == true }?.amount ?: 0.0
-                    val carbs = nutrients.find { it.name?.contains("Carbohydrates", ignoreCase = true) == true }?.amount ?: 0.0
-                    val fiber = nutrients.find { it.name?.contains("Fiber", ignoreCase = true) == true }?.amount
-                    val sugar = nutrients.find { it.name?.contains("Sugar", ignoreCase = true) == true }?.amount
-                    
-                    Log.d("NutritionAPI", "Informações nutricionais encontradas via complexSearch")
-                    return Result.success(
-                        RecipeNutrition(
-                            calories = calories,
-                            protein = protein,
-                            fat = fat,
-                            carbohydrates = carbs,
-                            fiber = fiber,
-                            sugar = sugar
-                        )
-                    )
-                }
-            }
+            // Criar uma receita temporária para análise
+            val tempRecipe = ReceitaEntity(
+                id = "temp",
+                nome = recipeTitle,
+                descricaoCurta = "",
+                imagemUrl = "",
+                ingredientes = listOf(recipeTitle), // Usar o título como ingrediente principal
+                modoPreparo = emptyList(),
+                tempoPreparo = "",
+                porcoes = 1,
+                userId = "",
+                userEmail = null,
+                curtidas = emptyList(),
+                favoritos = emptyList()
+            )
+            
+            val nutrition = nutritionService.getNutritionalInfo(tempRecipe)
+            Log.d("NutritionAPI", "Informações nutricionais obtidas via Gemini")
+            return Result.success(nutrition)
+            
         } catch (e: Exception) {
-            Log.e("NutritionAPI", "Erro no complexSearch: ${e.message}")
+            Log.e("NutritionAPI", "Erro na busca da API Gemini: ${e.message}")
+            return Result.failure(e)
         }
-        
-        // Strategy 2: Try guessNutrition as fallback
+    }
+
+    private suspend fun searchFromGeminiAPIForRecipe(receita: ReceitaEntity): Result<RecipeNutrition> {
         try {
-            Log.d("NutritionAPI", "Tentando guessNutrition...")
-            val response = apiService.getNutritionInfo(recipeTitle)
-            Log.d("NutritionAPI", "Resposta guessNutrition: ${response.results?.size ?: 0} resultados")
+            Log.d("NutritionAPI", "Buscando na API Gemini para receita: ${receita.nome}")
             
-            if (response.results?.isNotEmpty() == true) {
-                val nutrition = response.results.first().nutrition
-                if (nutrition != null) {
-                    val nutrients = nutrition.nutrients ?: emptyList()
-                    
-                    val calories = nutrition.calories ?: 0.0
-                    val protein = nutrients.find { it.name?.contains("Protein", ignoreCase = true) == true }?.amount ?: 0.0
-                    val fat = nutrients.find { it.name?.contains("Fat", ignoreCase = true) == true }?.amount ?: 0.0
-                    val carbs = nutrients.find { it.name?.contains("Carbohydrates", ignoreCase = true) == true }?.amount ?: 0.0
-                    val fiber = nutrients.find { it.name?.contains("Fiber", ignoreCase = true) == true }?.amount
-                    val sugar = nutrients.find { it.name?.contains("Sugar", ignoreCase = true) == true }?.amount
-                    
-                    Log.d("NutritionAPI", "Informações nutricionais encontradas via guessNutrition")
-                    return Result.success(
-                        RecipeNutrition(
-                            calories = calories,
-                            protein = protein,
-                            fat = fat,
-                            carbohydrates = carbs,
-                            fiber = fiber,
-                            sugar = sugar
-                        )
-                    )
-                }
-            }
+            val nutrition = nutritionService.getNutritionalInfo(receita)
+            Log.d("NutritionAPI", "Informações nutricionais obtidas via Gemini para receita: ${receita.id}")
+            return Result.success(nutrition)
+            
         } catch (e: Exception) {
-            Log.e("NutritionAPI", "Erro no guessNutrition: ${e.message}")
+            Log.e("NutritionAPI", "Erro na busca da API Gemini para receita: ${e.message}")
+            return Result.failure(e)
         }
-        
-        Log.e("NutritionAPI", "Receita não encontrada")
-        return Result.failure(Exception("Receita não encontrada"))
     }
     
     // Função para limpar cache antigo (pode ser chamada periodicamente)
@@ -203,48 +184,9 @@ class NutritionRepository(private val context: Context) {
     suspend fun getCacheStats(): Int {
         return nutritionCacheDao.getCacheSize()
     }
-    
-    private fun translateToEnglish(recipeTitle: String): String {
-        return when (recipeTitle.lowercase()) {
-            "bolo de cenoura" -> "carrot cake"
-            "bolo de chocolate" -> "chocolate cake"
-            "bolo de banana" -> "banana bread"
-            "bolo de laranja" -> "orange cake"
-            "bolo de limão" -> "lemon cake"
-            "bolo de fubá" -> "cornmeal cake"
-            "bolo de milho" -> "corn cake"
-            "bolo de coco" -> "coconut cake"
-            "bolo de maçã" -> "apple cake"
-            "bolo de abacaxi" -> "pineapple cake"
-            "pão de queijo" -> "cheese bread"
-            "brigadeiro" -> "chocolate truffle"
-            "beijinho" -> "coconut truffle"
-            "quindim" -> "coconut custard"
-            "pudim" -> "pudding"
-            "mousse de chocolate" -> "chocolate mousse"
-            "mousse de maracujá" -> "passion fruit mousse"
-            "torta de frango" -> "chicken pie"
-            "torta de palmito" -> "hearts of palm pie"
-            "torta de camarão" -> "shrimp pie"
-            "feijoada" -> "black bean stew"
-            "coxinha" -> "chicken croquette"
-            "lasanha" -> "lasagna"
-            "panqueca" -> "pancake"
-            "tapioca" -> "tapioca"
-            "omelete" -> "omelette"
-            "omelete de queijo e tomate" -> "cheese tomato omelette"
-            "tapioca com coco e leite condensado" -> "tapioca with coconut"
-            "salada de grão-de-bico" -> "chickpea salad"
-            else -> recipeTitle
-        }
-    }
-    
-    private fun simplifyTitle(recipeTitle: String): String {
-        return recipeTitle.lowercase()
-            .replace("bolo de ", "")
-            .replace("torta de ", "")
-            .replace("mousse de ", "")
-            .replace("pão de ", "")
-            .trim()
+
+    // Função para obter dados nutricionais salvos de uma receita
+    suspend fun getSavedNutritionData(receitaId: String): NutritionDataEntity? {
+        return nutritionDataDao.getNutritionDataByReceitaId(receitaId)
     }
 } 

@@ -18,6 +18,15 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.NavType
 import com.example.myapplication.ui.components.BottomNavigationBar
 import com.example.myapplication.navigation.AppScreens
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.ui.platform.LocalContext
+import com.example.myapplication.core.data.database.AppDatabase
+import com.example.myapplication.core.data.network.ConnectivityObserver
+import com.example.myapplication.core.data.repository.ReceitasRepository
+import com.example.myapplication.core.data.storage.ImageStorageService
+import com.example.myapplication.core.ui.error.ErrorHandler
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -98,6 +107,67 @@ fun MainNav() {
                 bottomBar = { BottomNavigationBar(navController) }
             ) { paddingValues ->
                 ConfiguracoesScreen(onBack = { navController.popBackStack() })
+            }
+        }
+        composable(AppScreens.ChatScreen.route) {
+            val context = LocalContext.current
+            val database = remember { AppDatabase.getDatabase(context) }
+            val receitaDao = remember { database.receitaDao() }
+            val connectivityObserver = remember { ConnectivityObserver(context) }
+            val receitasRepository = remember { 
+                ReceitasRepository(
+                    receitaDao,
+                    database.nutritionDataDao(),
+                    connectivityObserver,
+                    ImageStorageService(),
+                    ErrorHandler()
+                ) 
+            }
+            
+            val chatViewModel = remember {
+                com.example.myapplication.feature.receitas.ChatViewModel(
+                    com.example.myapplication.data.GeminiChatService(),
+                    receitasRepository
+                )
+            }
+            
+            Scaffold(
+                topBar = {
+                    TopAppBar(
+                        title = { Text("Chat com Chef Gemini") },
+                        navigationIcon = {
+                            IconButton(onClick = { navController.popBackStack() }) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Voltar")
+                            }
+                        },
+                        actions = {
+                            IconButton(onClick = { chatViewModel.clearChat() }) {
+                                Icon(Icons.Filled.Clear, contentDescription = "Limpar chat")
+                            }
+                        }
+                    )
+                },
+                bottomBar = { BottomNavigationBar(navController) }
+            ) { paddingValues ->
+                com.example.myapplication.feature.receitas.ChatScreen(
+                    chatViewModel = chatViewModel,
+                    onGenerateRecipe = {
+                        navController.navigate(AppScreens.TelaInicialScreen.route) {
+                            popUpTo(AppScreens.ChatScreen.route) { inclusive = true }
+                        }
+                    },
+                    modifier = Modifier.padding(paddingValues)
+                )
+            }
+        }
+        composable(AppScreens.ProfileScreen.route) {
+            Scaffold(
+                topBar = {
+                    TopAppBar(title = { Text("Perfil") })
+                },
+                bottomBar = { BottomNavigationBar(navController) }
+            ) { paddingValues ->
+                com.example.myapplication.feature.receitas.ProfileScreen(onBack = { navController.popBackStack() })
             }
         }
         composable(

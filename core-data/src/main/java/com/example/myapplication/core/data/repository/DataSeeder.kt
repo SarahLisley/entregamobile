@@ -4,10 +4,13 @@ import android.content.Context
 import android.util.Log
 import com.example.myapplication.core.data.database.entity.ReceitaEntity
 import com.example.myapplication.core.data.model.RecipeNutrition
-import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
+import com.example.myapplication.core.data.repository.ReceitasRepository
+import com.example.myapplication.core.data.repository.NutritionRepository
+import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.GenericTypeIndicator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -25,12 +28,12 @@ class DataSeeder @Inject constructor(
                 val isPopulated = prefs.getBoolean("database_populated", false)
                 
                 if (!isPopulated) {
-                    Log.d("DataSeeder", "Populando banco de dados com receitas predefinidas...")
-                    val success = populateWithPredefinedRecipes()
+                    Log.d("DataSeeder", "Carregando receitas do Firebase...")
+                    val success = loadRecipesFromFirebase()
                     
                     if (success) {
                         prefs.edit().putBoolean("database_populated", true).apply()
-                        Log.d("DataSeeder", "Banco de dados populado com sucesso!")
+                        Log.d("DataSeeder", "Receitas carregadas do Firebase com sucesso!")
                     }
                     
                     success
@@ -39,7 +42,7 @@ class DataSeeder @Inject constructor(
                     true
                 }
             } catch (e: Exception) {
-                Log.e("DataSeeder", "Erro ao popular banco de dados: ${e.message}")
+                Log.e("DataSeeder", "Erro ao carregar receitas: ${e.message}")
                 false
             }
         }
@@ -48,74 +51,84 @@ class DataSeeder @Inject constructor(
     suspend fun forcePopulateDatabase(): Boolean {
         return withContext(Dispatchers.IO) {
             try {
-                Log.d("DataSeeder", "Forçando população do banco de dados...")
-                val success = populateWithPredefinedRecipes()
+                Log.d("DataSeeder", "Forçando carregamento de receitas do Firebase...")
+                val success = loadRecipesFromFirebase()
                 
                 if (success) {
                     context.getSharedPreferences("app_data", Context.MODE_PRIVATE)
                         .edit()
                         .putBoolean("database_populated", true)
                         .apply()
-                    Log.d("DataSeeder", "Banco de dados populado com sucesso!")
+                    Log.d("DataSeeder", "Receitas carregadas do Firebase com sucesso!")
                 }
                 
                 success
             } catch (e: Exception) {
-                Log.e("DataSeeder", "Erro ao popular banco de dados: ${e.message}")
+                Log.e("DataSeeder", "Erro ao carregar receitas: ${e.message}")
                 false
             }
         }
     }
     
-    private suspend fun populateWithPredefinedRecipes(): Boolean {
+    private suspend fun loadRecipesFromFirebase(): Boolean {
         return try {
-            val recipes = loadPredefinedRecipes()
-            var successCount = 0
+            val database = FirebaseDatabase.getInstance()
+            val receitasRef = database.getReference("receitas")
             
-            for (recipe in recipes) {
-                try {
-                    // Salvar a receita no banco
-                    receitasRepository.salvarReceita(
-                        context = context,
-                        id = recipe.id,
-                        nome = recipe.nome,
-                        descricaoCurta = recipe.descricaoCurta,
-                        imagemUri = null, // Usar a URL da imagem
-                        ingredientes = recipe.ingredientes,
-                        modoPreparo = recipe.modoPreparo,
-                        tempoPreparo = recipe.tempoPreparo,
-                        porcoes = recipe.porcoes,
-                        userId = recipe.userId,
-                        userEmail = recipe.userEmail,
-                        imagemUrl = recipe.imagemUrl
-                    )
-                    successCount++
-                    Log.d("DataSeeder", "Receita salva: ${recipe.nome}")
-                } catch (e: Exception) {
-                    Log.e("DataSeeder", "Erro ao salvar receita ${recipe.nome}: ${e.message}")
+            Log.d("DataSeeder", "Conectando ao Firebase...")
+            val snapshot = receitasRef.get().await()
+            
+            if (snapshot.exists()) {
+                val receitasData = snapshot.getValue(object : GenericTypeIndicator<Map<String, Map<String, Any>>>() {})
+                
+                if (receitasData != null) {
+                    var successCount = 0
+                    
+                    for ((id, receitaData) in receitasData) {
+                        try {
+                            val receita = createReceitaFromFirebaseData(id, receitaData)
+                            receitasRepository.addReceita(receita)
+                            successCount++
+                            Log.d("DataSeeder", "Receita carregada do Firebase: ${receita.nome}")
+                        } catch (e: Exception) {
+                            Log.e("DataSeeder", "Erro ao carregar receita $id: ${e.message}")
+                        }
+                    }
+                    
+                    Log.d("DataSeeder", "Total de receitas carregadas do Firebase: $successCount")
+                    successCount > 0
+                } else {
+                    Log.d("DataSeeder", "Nenhuma receita encontrada no Firebase")
+                    true // Não é erro se não há receitas
                 }
+            } else {
+                Log.d("DataSeeder", "Nenhuma receita encontrada no Firebase")
+                true // Não é erro se não há receitas
             }
-            
-            Log.d("DataSeeder", "Total de receitas salvas: $successCount/${recipes.size}")
-            successCount > 0
         } catch (e: Exception) {
-            Log.e("DataSeeder", "Erro ao carregar receitas predefinidas: ${e.message}")
+            Log.e("DataSeeder", "Erro ao carregar receitas do Firebase: ${e.message}")
             false
         }
     }
     
-    private fun loadPredefinedRecipes(): List<PredefinedRecipe> {
-        return try {
-            val json = context.assets.open("receitas_predefinidas.json")
-                .bufferedReader()
-                .use { it.readText() }
-            
-            val type = object : TypeToken<List<PredefinedRecipe>>() {}.type
-            Gson().fromJson(json, type) ?: emptyList()
-        } catch (e: Exception) {
-            Log.e("DataSeeder", "Erro ao ler arquivo JSON: ${e.message}")
-            emptyList()
-        }
+    private fun createReceitaFromFirebaseData(id: String, data: Map<String, Any>): ReceitaEntity {
+        return ReceitaEntity(
+            id = id,
+            nome = data["nome"] as? String ?: "",
+            descricaoCurta = data["descricaoCurta"] as? String ?: "",
+            imagemUrl = data["imagemUrl"] as? String ?: "",
+            ingredientes = (data["ingredientes"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList(),
+            modoPreparo = (data["modoPreparo"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList(),
+            tempoPreparo = data["tempoPreparo"] as? String ?: "",
+            porcoes = (data["porcoes"] as? Long)?.toInt() ?: 1,
+            userId = data["userId"] as? String ?: "",
+            userEmail = data["userEmail"] as? String,
+            curtidas = (data["curtidas"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList(),
+            favoritos = (data["favoritos"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList(),
+            tags = (data["tags"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList(),
+            isSynced = true,
+            lastModified = (data["lastModified"] as? Long) ?: System.currentTimeMillis()
+        )
     }
     
     suspend fun importPopularRecipesFromAPI(titles: List<String>): Int {
@@ -195,45 +208,13 @@ class DataSeeder @Inject constructor(
                 description = "Bolo de chocolate fofinho e saboroso",
                 imageUrl = "https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=400&h=300&fit=crop",
                 ingredients = listOf("Chocolate", "Farinha", "Açúcar", "Ovos", "Leite", "Fermento"),
-                instructions = listOf("Derreta o chocolate", "Misture os ingredientes", "Asse por 35 minutos"),
-                cookingTime = "45 min",
-                servings = 10
-            )
-            "black bean stew" -> MockRecipeData(
-                description = "Prato tradicional brasileiro com feijão preto e carnes",
-                imageUrl = "https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=400&h=300&fit=crop",
-                ingredients = listOf("Feijão preto", "Carne seca", "Linguiça", "Paio", "Louro", "Sal"),
-                instructions = listOf("Cozinhe o feijão com as carnes", "Adicione temperos", "Cozinhe por 2 horas"),
-                cookingTime = "3 horas",
+                instructions = listOf("Misture os ingredientes", "Asse por 45 minutos", "Deixe esfriar"),
+                cookingTime = "55 min",
                 servings = 8
             )
-            "chocolate mousse" -> MockRecipeData(
-                description = "Sobremesa cremosa e deliciosa de chocolate",
-                imageUrl = "https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=400&h=300&fit=crop",
-                ingredients = listOf("Chocolate", "Ovos", "Creme de leite", "Açúcar"),
-                instructions = listOf("Derreta o chocolate", "Bata as claras", "Misture tudo", "Leve à geladeira"),
-                cookingTime = "4 horas",
-                servings = 6
-            )
-            "cheese bread" -> MockRecipeData(
-                description = "Pão de queijo mineiro tradicional",
-                imageUrl = "https://images.unsplash.com/photo-1608198093002-ad4e505484ba?w=400&h=300&fit=crop",
-                ingredients = listOf("Polvilho", "Leite", "Óleo", "Ovos", "Queijo", "Sal"),
-                instructions = listOf("Ferva o leite", "Misture com polvilho", "Faça bolinhas", "Asse"),
-                cookingTime = "30 min",
-                servings = 20
-            )
-            "chicken croquette" -> MockRecipeData(
-                description = "Salgadinho brasileiro recheado com frango",
-                imageUrl = "https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?w=400&h=300&fit=crop",
-                ingredients = listOf("Farinha", "Água", "Frango", "Cebola", "Manteiga"),
-                instructions = listOf("Faça a massa", "Recheie com frango", "Passe na farinha", "Frite"),
-                cookingTime = "1 hora",
-                servings = 12
-            )
             else -> MockRecipeData(
-                description = "Receita deliciosa e tradicional",
-                imageUrl = "https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=400&h=300&fit=crop",
+                description = "Receita deliciosa e nutritiva",
+                imageUrl = "https://images.unsplash.com/photo-1495521821757-a1efb6729352?w=400&h=300&fit=crop",
                 ingredients = listOf("Ingrediente 1", "Ingrediente 2", "Ingrediente 3"),
                 instructions = listOf("Passo 1", "Passo 2", "Passo 3"),
                 cookingTime = "30 min",
@@ -242,7 +223,6 @@ class DataSeeder @Inject constructor(
         }
     }
     
-    // Data classes para deserialização do JSON
     data class PredefinedRecipe(
         val id: String,
         val nome: String,
@@ -258,7 +238,7 @@ class DataSeeder @Inject constructor(
         val favoritos: List<String>
     )
     
-    private data class MockRecipeData(
+    data class MockRecipeData(
         val description: String,
         val imageUrl: String,
         val ingredients: List<String>,

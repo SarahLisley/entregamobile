@@ -1,5 +1,6 @@
 package com.example.myapplication.core.data.network
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.Network
@@ -17,6 +18,7 @@ class ConnectivityObserver @Inject constructor(
     
     private val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
     
+    @SuppressLint("MissingPermission")
     fun observe(): Flow<NetworkStatus> = callbackFlow {
         val callback = object : ConnectivityManager.NetworkCallback() {
             override fun onAvailable(network: Network) {
@@ -49,6 +51,7 @@ class ConnectivityObserver @Inject constructor(
         }
     }.distinctUntilChanged()
     
+    @SuppressLint("MissingPermission")
     fun isConnected(): Boolean {
         val network = connectivityManager.activeNetwork ?: return false
         val activeNetwork = connectivityManager.getNetworkCapabilities(network) ?: return false

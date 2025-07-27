@@ -18,6 +18,7 @@ data class ReceitaEntity(
     val userEmail: String?,
     val curtidas: List<String>,
     val favoritos: List<String>,
+    val tags: List<String> = emptyList(),
     val isSynced: Boolean = false,
     val lastModified: Long = System.currentTimeMillis()
 ) 

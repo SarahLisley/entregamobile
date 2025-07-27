@@ -16,8 +16,6 @@ import com.example.myapplication.core.data.repository.UserPreferencesRepository
 // import dagger.hilt.components.SingletonComponent
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
-import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
 // import javax.inject.Singleton
 
 // @Module
@@ -44,13 +42,20 @@ object DataModule {
         imageStorageService: ImageStorageService,
         errorHandler: ErrorHandler
     ): ReceitasRepository {
-        return ReceitasRepository(database.receitaDao(), connectivityObserver, imageStorageService, errorHandler)
+        return ReceitasRepository(
+            database.receitaDao(),
+            database.nutritionDataDao(),
+            connectivityObserver,
+            imageStorageService,
+            errorHandler
+        )
     }
     
     // @Provides
     // @Singleton
     fun provideNutritionRepository(context: Context): NutritionRepository {
-        return NutritionRepository(context)
+        // Esta função será implementada no módulo app onde temos acesso ao GeminiService
+        throw NotImplementedError("NutritionRepository deve ser fornecido pelo módulo app")
     }
     
     // @Provides
@@ -85,16 +90,6 @@ object DataModule {
         return OkHttpClient.Builder()
             .addInterceptor(retryInterceptor)
             .addInterceptor(loggingInterceptor)
-            .build()
-    }
-    
-    // @Provides
-    // @Singleton
-    fun provideRetrofit(okHttpClient: OkHttpClient): Retrofit {
-        return Retrofit.Builder()
-            .baseUrl("https://api.spoonacular.com/")
-            .client(okHttpClient)
-            .addConverterFactory(GsonConverterFactory.create())
             .build()
     }
 } 

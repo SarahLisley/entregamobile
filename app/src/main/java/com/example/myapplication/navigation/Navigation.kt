@@ -1,6 +1,8 @@
 package com.example.myapplication.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -9,6 +11,15 @@ import androidx.compose.material3.Text
 import com.example.myapplication.ui.screens.ConfiguracoesScreen
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
+import com.example.myapplication.feature.receitas.ChatScreen
+import com.example.myapplication.feature.receitas.ChatViewModel
+import com.example.myapplication.feature.receitas.ProfileScreen
+import com.example.myapplication.data.GeminiChatService
+import com.example.myapplication.core.data.database.AppDatabase
+import com.example.myapplication.core.data.network.ConnectivityObserver
+import com.example.myapplication.core.data.repository.ReceitasRepository
+import com.example.myapplication.core.data.storage.ImageStorageService
+import com.example.myapplication.core.ui.error.ErrorHandler
 
 // Rotas nomeadas
 sealed class AppScreens(val route: String) {
@@ -17,6 +28,9 @@ sealed class AppScreens(val route: String) {
     object ConfiguracoesScreen : AppScreens("configuracoes")
     object AjudaScreen : AppScreens("ajuda")
     object BuscaScreen : AppScreens("busca")
+    object ChatScreen : AppScreens("chat")
+    object ProfileScreen : AppScreens("profile")
+
 
 
     object DetalheScreen {
@@ -48,7 +62,10 @@ fun AppNavigation() {
             FavoritosScreen(navController)
         }
         composable(AppScreens.ConfiguracoesScreen.route) {
-            ConfiguracoesScreen(onBack = { navController.popBackStack() })
+            ConfiguracoesScreen(
+                onBack = { navController.popBackStack() },
+                navController = navController
+            )
         }
         composable(AppScreens.AjudaScreen.route) {
             AjudaScreen(navController)
@@ -56,6 +73,42 @@ fun AppNavigation() {
         composable(AppScreens.BuscaScreen.route) {
             BuscaScreen(navController)
         }
+        
+        composable(AppScreens.ChatScreen.route) {
+            val context = LocalContext.current
+            val database = remember { AppDatabase.getDatabase(context) }
+            val receitaDao = remember { database.receitaDao() }
+            val connectivityObserver = remember { ConnectivityObserver(context) }
+            val receitasRepository = remember { 
+                ReceitasRepository(
+                    receitaDao,
+                    database.nutritionDataDao(),
+                    connectivityObserver,
+                    ImageStorageService(),
+                    ErrorHandler()
+                ) 
+            }
+            
+            val chatViewModel = remember {
+                ChatViewModel(GeminiChatService(), receitasRepository)
+            }
+            
+            ChatScreen(
+                chatViewModel = chatViewModel,
+                onGenerateRecipe = {
+                    // Navegar para a tela inicial após gerar a receita
+                    navController.navigate(AppScreens.TelaInicialScreen.route) {
+                        popUpTo(AppScreens.ChatScreen.route) { inclusive = true }
+                    }
+                }
+            )
+        }
+        
+        composable(AppScreens.ProfileScreen.route) {
+            ProfileScreen(onBack = { navController.popBackStack() })
+        }
+        
+
 
         composable(
             route = AppScreens.DetalheScreen.routeWithArgs,

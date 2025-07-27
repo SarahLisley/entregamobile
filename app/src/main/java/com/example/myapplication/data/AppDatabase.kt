@@ -8,7 +8,7 @@ import androidx.room.TypeConverters
 import com.example.myapplication.model.ReceitaEntity
 import com.example.myapplication.model.NutritionCacheEntity
 
-@Database(entities = [ReceitaEntity::class, NutritionCacheEntity::class], version = 5, exportSchema = false)
+@Database(entities = [ReceitaEntity::class, NutritionCacheEntity::class], version = 6, exportSchema = false)
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun receitaDao(): ReceitaDao

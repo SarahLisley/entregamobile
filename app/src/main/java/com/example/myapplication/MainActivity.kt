@@ -20,6 +20,7 @@ import com.example.myapplication.core.data.network.ConnectivityObserver
 import com.example.myapplication.core.data.storage.ImageStorageService
 import com.example.myapplication.core.ui.error.ErrorHandler
 import com.example.myapplication.workers.SyncWorker
+import com.example.myapplication.data.GeminiNutritionService
 // import dagger.hilt.android.AndroidEntryPoint
 import java.util.Calendar
 import java.util.concurrent.TimeUnit
@@ -57,8 +58,14 @@ class MainActivity : ComponentActivity() {
         val connectivityObserver = ConnectivityObserver(this)
         val imageStorageService = ImageStorageService()
         val errorHandler = ErrorHandler()
-        val receitasRepository = ReceitasRepository(database.receitaDao(), connectivityObserver, imageStorageService, errorHandler)
-        val nutritionRepository = NutritionRepository(this)
+        val receitasRepository = ReceitasRepository(
+            database.receitaDao(),
+            database.nutritionDataDao(),
+            connectivityObserver,
+            imageStorageService,
+            errorHandler
+        )
+        val nutritionRepository = NutritionRepository(this, GeminiNutritionService())
         
         dataSeeder = DataSeeder(this, receitasRepository, nutritionRepository)
         

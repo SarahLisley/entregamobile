@@ -64,6 +64,10 @@ dependencies {
     // Coil para carregamento de imagens
     implementation(libs.coil.compose)
     
+    // Firebase
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.bundles.firebase)
+    
     // Testes
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

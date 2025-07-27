@@ -53,10 +53,13 @@ import android.widget.Toast
 import android.content.Intent
 import android.provider.Settings
 import androidx.compose.material3.TextButton
+import com.example.myapplication.data.GeminiNutritionService
+import androidx.navigation.NavController
 
 @Composable
 fun ConfiguracoesScreen(
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    navController: NavController? = null
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -68,8 +71,16 @@ fun ConfiguracoesScreen(
     val database = remember { AppDatabase.getDatabase(context) }
     val receitaDao = remember { database.receitaDao() }
     val connectivityObserver = remember { ConnectivityObserver(context) }
-    val receitasRepository = remember { ReceitasRepository(receitaDao, connectivityObserver, com.example.myapplication.core.data.storage.ImageStorageService(), com.example.myapplication.core.ui.error.ErrorHandler()) }
-    val nutritionRepository = remember { NutritionRepository(context) }
+    val receitasRepository = remember {
+        ReceitasRepository(
+            receitaDao,
+            database.nutritionDataDao(),
+            connectivityObserver,
+            com.example.myapplication.core.data.storage.ImageStorageService(),
+            com.example.myapplication.core.ui.error.ErrorHandler()
+        )
+    }
+    val nutritionRepository = remember { NutritionRepository(context, GeminiNutritionService()) }
     val dataSeeder = remember { DataSeeder(context, receitasRepository, nutritionRepository) }
     var receitasFirebase by remember { mutableStateOf<List<Map<String, Any?>>>(emptyList()) }
     var showReceitaDialog by remember { mutableStateOf(false) }
@@ -160,6 +171,10 @@ fun ConfiguracoesScreen(
                 Spacer(Modifier.width(8.dp))
                 Text(if (isSeedingDatabase) "Populando..." else "Popular Banco de Dados")
             }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+
             
             // Diálogo de permissão
             if (showPermissionDialog) {

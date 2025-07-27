@@ -4,10 +4,11 @@ import android.content.Context
 import android.util.Log
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
-import com.example.myapplication.data.AppDatabase
-import com.example.myapplication.data.ReceitasRepository
-import com.example.myapplication.data.ConnectivityObserver
-import com.example.myapplication.data.NutritionRepository
+import com.example.myapplication.core.data.database.AppDatabase
+import com.example.myapplication.core.data.repository.ReceitasRepository
+import com.example.myapplication.core.data.network.ConnectivityObserver
+import com.example.myapplication.core.data.repository.NutritionRepository
+import com.example.myapplication.data.GeminiNutritionService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -21,8 +22,16 @@ class SyncWorker(
             val database = AppDatabase.getDatabase(context)
             val receitaDao = database.receitaDao()
             val connectivityObserver = ConnectivityObserver(context)
-            val receitasRepository = ReceitasRepository(receitaDao, connectivityObserver)
-            val nutritionRepository = NutritionRepository(context)
+            val imageStorageService = com.example.myapplication.core.data.storage.ImageStorageService()
+            val errorHandler = com.example.myapplication.core.ui.error.ErrorHandler()
+            val receitasRepository = ReceitasRepository(
+                receitaDao,
+                database.nutritionDataDao(),
+                connectivityObserver,
+                imageStorageService,
+                errorHandler
+            )
+            val nutritionRepository = NutritionRepository(context, GeminiNutritionService())
 
             // Verificar se há conectividade
             if (!connectivityObserver.isConnected()) {

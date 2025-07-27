@@ -18,7 +18,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
-import com.example.myapplication.data.ReceitasRepository
+import com.example.myapplication.core.data.repository.ReceitasRepository
 import com.example.myapplication.navigation.AppScreens
 import com.example.myapplication.ui.components.BottomNavigationBar
 import androidx.lifecycle.viewmodel.compose.viewModel

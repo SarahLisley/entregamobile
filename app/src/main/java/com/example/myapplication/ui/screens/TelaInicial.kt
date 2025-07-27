@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -69,8 +70,8 @@ import android.net.Uri
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import com.example.myapplication.data.ReceitasRepository
-import com.example.myapplication.data.SupabaseImageUploader
+import com.example.myapplication.core.data.repository.ReceitasRepository
+import com.example.myapplication.core.data.SupabaseImageUploader
 import androidx.compose.runtime.collectAsState
 import androidx.compose.material3.SnackbarHostState
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
@@ -78,6 +79,10 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.foundation.clickable
+import android.util.Log
+import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.Sync
+import com.example.myapplication.data.TestImageGeneration
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
@@ -88,6 +93,7 @@ fun TelaInicial(navController: NavHostController) {
     val navBackStackEntry = navController.getBackStackEntry(AppScreens.TelaInicialScreen.route)
     val receitasViewModel: ReceitasViewModel = viewModel(viewModelStoreOwner = navBackStackEntry)
     val uiState by receitasViewModel.uiState.collectAsState()
+    val recommendedRecipes by receitasViewModel.recommendedRecipes.collectAsState()
     val authViewModel: AuthViewModel = viewModel()
     val usuario = authViewModel.usuarioAtual()
     val isUsuarioLogado = usuario != null
@@ -105,6 +111,8 @@ fun TelaInicial(navController: NavHostController) {
     }
     var receitaParaDeletar by remember { mutableStateOf<Map<String, Any?>?>(null) }
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var showTestDialog by remember { mutableStateOf(false) }
+    var testRecipeName by remember { mutableStateOf("Bolo de Chocolate") }
     // Coleta eventos únicos do ViewModel para exibir Snackbars
     LaunchedEffect(Unit) {
         receitasViewModel.eventFlow.collect { message ->
@@ -116,6 +124,20 @@ fun TelaInicial(navController: NavHostController) {
             TopAppBar(
                 title = { Text("NutriLivre") },
                 actions = {
+                    // Botão de sincronização
+                    IconButton(
+                        onClick = { receitasViewModel.syncFromFirebase() }
+                    ) {
+                        Icon(Icons.Filled.Sync, contentDescription = "Sincronizar do Firebase")
+                    }
+                    
+                    // Botão de teste para a nova funcionalidade
+                    IconButton(
+                        onClick = { showTestDialog = true }
+                    ) {
+                        Icon(Icons.Filled.Image, contentDescription = "Testar geração de imagem")
+                    }
+                    
                     IconButton(onClick = { expandedMenu = true }) {
                         Icon(Icons.Filled.MoreVert, contentDescription = "Menu")
                     }
@@ -185,6 +207,75 @@ fun TelaInicial(navController: NavHostController) {
                         contentPadding = PaddingValues(8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
+                        // Seção de receitas recomendadas
+                        if (recommendedRecipes.isNotEmpty()) {
+                            item {
+                                Text(
+                                    text = "Recomendado para Você",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    modifier = Modifier.padding(vertical = 16.dp, horizontal = 8.dp)
+                                )
+                            }
+                            
+                            item {
+                                LazyRow(
+                                    contentPadding = PaddingValues(horizontal = 8.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    items(recommendedRecipes) { receita ->
+                                        Card(
+                                            modifier = Modifier
+                                                .width(200.dp)
+                                                .clickable {
+                                                    navController.navigate(AppScreens.DetalheScreen.createRoute(receita.id))
+                                                },
+                                            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                                        ) {
+                                            Column {
+                                                AsyncImage(
+                                                    model = receita.imagemUrl,
+                                                    contentDescription = receita.nome,
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .height(120.dp),
+                                                    contentScale = ContentScale.Crop,
+                                                    onError = { state ->
+                                                        Log.e("TelaInicial", "Erro ao carregar imagem: ${receita.imagemUrl}")
+                                                    },
+                                                    onSuccess = { state ->
+                                                        Log.d("TelaInicial", "Imagem carregada com sucesso: ${receita.imagemUrl}")
+                                                    }
+                                                )
+                                                Column(
+                                                    modifier = Modifier.padding(8.dp)
+                                                ) {
+                                                    Text(
+                                                        text = receita.nome,
+                                                        style = MaterialTheme.typography.titleSmall,
+                                                        maxLines = 2
+                                                    )
+                                                    Text(
+                                                        text = receita.descricaoCurta,
+                                                        style = MaterialTheme.typography.bodySmall,
+                                                        maxLines = 2
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            item {
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text(
+                                    text = "Todas as Receitas",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    modifier = Modifier.padding(vertical = 16.dp, horizontal = 8.dp)
+                                )
+                            }
+                        }
+                        
                         items(items = receitas, key = { it.id }) { receita ->
                             AnimatedVisibility(
                                 visible = true,
@@ -326,6 +417,44 @@ fun TelaInicial(navController: NavHostController) {
             )
         }
     }
+    
+    // Diálogo de teste para a nova funcionalidade
+    if (showTestDialog) {
+        AlertDialog(
+            onDismissRequest = { showTestDialog = false },
+            title = { Text("🧪 Testar Geração de Imagem") },
+            text = {
+                Column {
+                    Text("Teste a nova funcionalidade de geração de imagens usando o Worker modificado.")
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = testRecipeName,
+                        onValueChange = { testRecipeName = it },
+                        label = { Text("Nome da Receita") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        TestImageGeneration.testImageGeneration(testRecipeName)
+                        showTestDialog = false
+                        scope.launch {
+                            snackbarHostState.showSnackbar("Teste iniciado! Verifique os logs.")
+                        }
+                    }
+                ) {
+                    Text("🚀 Testar")
+                }
+            },
+            dismissButton = {
+                Button(onClick = { showTestDialog = false }) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
 }
 
 // Remover ReceitaCard, lógica de edição/favorito local e dependências de ReceitasViewModel
@@ -361,15 +490,44 @@ fun ReceitaCardFirebase(
     ) {
         Column {
             val imagemUrl = receita["imagemUrl"] as? String ?: ""
+            Log.d("ReceitaCardFirebase", "Receita: ${receita["nome"]}, URL da imagem: '$imagemUrl'")
+            
             if (imagemUrl.isNotBlank()) {
+                Log.d("ReceitaCardFirebase", "Tentando carregar imagem: $imagemUrl")
                 AsyncImage(
                     model = imagemUrl,
                     contentDescription = receita["nome"] as? String,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(180.dp)
+                        .height(180.dp),
+                    onError = { state ->
+                        Log.e("ReceitaCardFirebase", "Erro ao carregar imagem: ${state.result}")
+                        Log.e("ReceitaCardFirebase", "URL da imagem: $imagemUrl")
+                        Log.e("ReceitaCardFirebase", "Receita: ${receita["nome"]}")
+                    },
+                    onSuccess = { state ->
+                        Log.d("ReceitaCardFirebase", "Imagem carregada com sucesso: $imagemUrl")
+                        Log.d("ReceitaCardFirebase", "Receita: ${receita["nome"]}")
+                    }
                 )
+            } else {
+                Log.w("ReceitaCardFirebase", "URL da imagem está vazia para receita: ${receita["nome"]}")
+                // Placeholder quando não há imagem
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(180.dp)
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Image,
+                        contentDescription = "Sem imagem",
+                        modifier = Modifier.size(48.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
 
             Column(modifier = Modifier.padding(16.dp)) {

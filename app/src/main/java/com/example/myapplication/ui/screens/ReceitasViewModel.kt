@@ -12,12 +12,16 @@ import com.example.myapplication.core.data.database.AppDatabase
 import com.example.myapplication.core.data.network.ConnectivityObserver
 import com.example.myapplication.core.data.database.entity.ReceitaEntity
 import com.example.myapplication.core.data.model.RecipeNutrition
-import com.example.myapplication.data.SupabaseImageUploader
+import com.example.myapplication.core.data.SupabaseImageUploader
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.FirebaseDatabase
+import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
+import com.example.myapplication.data.GeminiNutritionService
 
 sealed class ReceitasUiState {
     object Loading : ReceitasUiState()
@@ -31,8 +35,14 @@ class ReceitasViewModel(
     private val database = AppDatabase.getDatabase(app)
     private val receitaDao = database.receitaDao()
     private val connectivityObserver = ConnectivityObserver(app)
-    private val repository = ReceitasRepository(receitaDao, connectivityObserver, ImageStorageService(), com.example.myapplication.core.ui.error.ErrorHandler())
-    private val nutritionRepository = NutritionRepository(app)
+    private val repository = ReceitasRepository(
+        receitaDao,
+        database.nutritionDataDao(),
+        connectivityObserver,
+        ImageStorageService(),
+        com.example.myapplication.core.ui.error.ErrorHandler()
+    )
+    private val nutritionRepository = NutritionRepository(app, GeminiNutritionService())
     
     private val _uiState = MutableStateFlow<ReceitasUiState>(ReceitasUiState.Loading)
     val uiState: StateFlow<ReceitasUiState> = _uiState
@@ -44,6 +54,10 @@ class ReceitasViewModel(
     // Estado para informações nutricionais
     private val _nutritionState = MutableStateFlow<RecipeNutrition?>(null)
     val nutritionState: StateFlow<RecipeNutrition?> = _nutritionState
+    
+    // Estado para receitas recomendadas
+    private val _recommendedRecipes = MutableStateFlow<List<ReceitaEntity>>(emptyList())
+    val recommendedRecipes: StateFlow<List<ReceitaEntity>> = _recommendedRecipes
 
     init {
         carregarReceitas()
@@ -56,6 +70,8 @@ class ReceitasViewModel(
                 // Observar receitas do Room (fonte única da verdade)
                 repository.getReceitas().collect { receitas ->
                     _uiState.value = ReceitasUiState.Success(receitas)
+                    // Carregar recomendações após as receitas serem carregadas
+                    carregarReceitasRecomendadas(receitas)
                 }
             } catch (e: Exception) {
                 _uiState.value = ReceitasUiState.Error(e.message ?: "Erro ao carregar receitas")
@@ -95,7 +111,8 @@ class ReceitasViewModel(
                 val id = System.currentTimeMillis().toString()
                 var imageUrl: String? = null
                 if (imagemUri != null) {
-                    imageUrl = SupabaseImageUploader.uploadImage(context, imagemUri)
+                    // Usar ImageStorageService para upload de Uri
+                    imageUrl = ImageStorageService().uploadImage(context, imagemUri, id)
                 }
                 repository.salvarReceita(
                     context = context,
@@ -123,7 +140,7 @@ class ReceitasViewModel(
             _uiState.value = ReceitasUiState.Loading
             try {
                 if (!imageUrl.isNullOrBlank()) {
-                    SupabaseImageUploader.deleteImageByUrl(imageUrl)
+                    ImageStorageService().deleteImage(imageUrl)
                 }
                 repository.deletarReceita(id, imageUrl)
                 _eventChannel.send("Receita deletada com sucesso!")
@@ -181,9 +198,9 @@ class ReceitasViewModel(
                 var imageUrl: String? = imagemUrlAntiga
                 if (novaImagemUri != null) {
                     if (!imagemUrlAntiga.isNullOrBlank()) {
-                        SupabaseImageUploader.deleteImageByUrl(imagemUrlAntiga)
+                        ImageStorageService().deleteImage(imagemUrlAntiga)
                     }
-                    imageUrl = SupabaseImageUploader.uploadImage(context, novaImagemUri)
+                    imageUrl = ImageStorageService().uploadImage(context, novaImagemUri, id)
                 }
                 
                 // Buscar receita atual do Room
@@ -268,5 +285,100 @@ class ReceitasViewModel(
     // Função para limpar informações nutricionais
     fun limparInformacoesNutricionais() {
         _nutritionState.value = null
+    }
+    
+    // Função para carregar receitas recomendadas
+    private fun carregarReceitasRecomendadas(allRecipes: List<ReceitaEntity>) {
+        viewModelScope.launch {
+            try {
+                val currentUser = FirebaseAuth.getInstance().currentUser
+                if (currentUser != null) {
+                    val userPreferences = getUserPreferences(currentUser.uid)
+                    val recommended = generateRecommendations(allRecipes, userPreferences)
+                    _recommendedRecipes.value = recommended
+                }
+            } catch (e: Exception) {
+                println("Erro ao carregar recomendações: ${e.message}")
+            }
+        }
+    }
+    
+    // Função para obter preferências do usuário
+    private suspend fun getUserPreferences(userId: String): Set<String> {
+        return try {
+            val database = FirebaseDatabase.getInstance()
+            val snapshot = database.getReference("users").child(userId).child("preferences").get().await()
+            snapshot.getValue(String::class.java)?.split(",")?.toSet() ?: emptySet()
+        } catch (e: Exception) {
+            emptySet()
+        }
+    }
+    
+    // Função para gerar recomendações
+    private fun generateRecommendations(
+        allRecipes: List<ReceitaEntity>,
+        userPreferences: Set<String>
+    ): List<ReceitaEntity> {
+        if (userPreferences.isEmpty()) {
+            // Se não há preferências, retornar receitas populares (com mais curtidas)
+            return allRecipes.sortedByDescending { it.curtidas.size }.take(5)
+        }
+        
+        val recipeScores = allRecipes.map { recipe ->
+            var score = 0
+            
+            // Pontuar por tags que correspondem às preferências
+            recipe.tags.forEach { tag ->
+                if (userPreferences.contains(tag)) {
+                    score += 5
+                }
+            }
+            
+            // Pontuar por receitas favoritadas
+            if (recipe.favoritos.isNotEmpty()) {
+                score += 10
+            }
+            
+            // Pontuar por receitas com muitas curtidas
+            score += recipe.curtidas.size
+            
+            recipe to score
+        }
+        
+        return recipeScores
+            .sortedByDescending { it.second }
+            .take(5)
+            .map { it.first }
+    }
+    
+    // Função para atualizar recomendações quando as preferências mudam
+    fun atualizarRecomendacoes() {
+        val allRecipes = (uiState.value as? ReceitasUiState.Success)?.receitas ?: emptyList()
+        carregarReceitasRecomendadas(allRecipes)
+    }
+    
+    // Função para sincronizar receitas do Firebase
+    fun syncFromFirebase() {
+        viewModelScope.launch {
+            try {
+                _uiState.value = ReceitasUiState.Loading
+                
+                val result = repository.syncFromFirebase()
+                
+                if (result.isSuccess) {
+                    val syncCount = result.getOrNull() ?: 0
+                    if (syncCount > 0) {
+                        _eventChannel.send("$syncCount receitas sincronizadas do Firebase")
+                    }
+                    
+                    // Recarregar receitas após sincronização
+                    carregarReceitas()
+                } else {
+                    _eventChannel.send("Erro ao sincronizar do Firebase")
+                }
+            } catch (e: Exception) {
+                _eventChannel.send("Erro ao sincronizar: ${e.message}")
+            }
+        }
     }
 }

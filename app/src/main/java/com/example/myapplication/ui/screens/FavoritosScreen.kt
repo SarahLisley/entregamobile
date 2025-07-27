@@ -19,7 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.example.myapplication.navigation.AppScreens
 import com.example.myapplication.ui.components.BottomNavigationBar
-import com.example.myapplication.data.ReceitasRepository
+import com.example.myapplication.core.data.repository.ReceitasRepository
 import kotlinx.coroutines.launch
 import coil.compose.AsyncImage
 import androidx.lifecycle.viewmodel.compose.viewModel

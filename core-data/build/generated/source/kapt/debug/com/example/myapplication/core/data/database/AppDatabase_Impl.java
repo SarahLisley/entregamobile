@@ -13,6 +13,8 @@ import androidx.sqlite.db.SupportSQLiteDatabase;
 import androidx.sqlite.db.SupportSQLiteOpenHelper;
 import com.example.myapplication.core.data.database.dao.NutritionCacheDao;
 import com.example.myapplication.core.data.database.dao.NutritionCacheDao_Impl;
+import com.example.myapplication.core.data.database.dao.NutritionDataDao;
+import com.example.myapplication.core.data.database.dao.NutritionDataDao_Impl;
 import com.example.myapplication.core.data.database.dao.ReceitaDao;
 import com.example.myapplication.core.data.database.dao.ReceitaDao_Impl;
 import java.lang.Class;
@@ -34,22 +36,26 @@ public final class AppDatabase_Impl extends AppDatabase {
 
   private volatile NutritionCacheDao _nutritionCacheDao;
 
+  private volatile NutritionDataDao _nutritionDataDao;
+
   @Override
   @NonNull
   protected SupportSQLiteOpenHelper createOpenHelper(@NonNull final DatabaseConfiguration config) {
     final SupportSQLiteOpenHelper.Callback _openCallback = new RoomOpenHelper(config, new RoomOpenHelper.Delegate(1) {
       @Override
       public void createAllTables(@NonNull final SupportSQLiteDatabase db) {
-        db.execSQL("CREATE TABLE IF NOT EXISTS `receitas` (`id` TEXT NOT NULL, `nome` TEXT NOT NULL, `descricaoCurta` TEXT NOT NULL, `imagemUrl` TEXT NOT NULL, `ingredientes` TEXT NOT NULL, `modoPreparo` TEXT NOT NULL, `tempoPreparo` TEXT NOT NULL, `porcoes` INTEGER NOT NULL, `userId` TEXT NOT NULL, `userEmail` TEXT, `curtidas` TEXT NOT NULL, `favoritos` TEXT NOT NULL, `isSynced` INTEGER NOT NULL, `lastModified` INTEGER NOT NULL, PRIMARY KEY(`id`))");
+        db.execSQL("CREATE TABLE IF NOT EXISTS `receitas` (`id` TEXT NOT NULL, `nome` TEXT NOT NULL, `descricaoCurta` TEXT NOT NULL, `imagemUrl` TEXT NOT NULL, `ingredientes` TEXT NOT NULL, `modoPreparo` TEXT NOT NULL, `tempoPreparo` TEXT NOT NULL, `porcoes` INTEGER NOT NULL, `userId` TEXT NOT NULL, `userEmail` TEXT, `curtidas` TEXT NOT NULL, `favoritos` TEXT NOT NULL, `tags` TEXT NOT NULL, `isSynced` INTEGER NOT NULL, `lastModified` INTEGER NOT NULL, PRIMARY KEY(`id`))");
         db.execSQL("CREATE TABLE IF NOT EXISTS `nutrition_cache` (`recipeTitle` TEXT NOT NULL, `calories` REAL NOT NULL, `protein` REAL NOT NULL, `fat` REAL NOT NULL, `carbohydrates` REAL NOT NULL, `fiber` REAL, `sugar` REAL, `timestamp` INTEGER NOT NULL, PRIMARY KEY(`recipeTitle`))");
+        db.execSQL("CREATE TABLE IF NOT EXISTS `nutrition_data` (`id` TEXT NOT NULL, `receitaId` TEXT NOT NULL, `calories` REAL NOT NULL, `protein` REAL NOT NULL, `fat` REAL NOT NULL, `carbohydrates` REAL NOT NULL, `fiber` REAL, `sugar` REAL, `isSynced` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL, PRIMARY KEY(`id`))");
         db.execSQL("CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)");
-        db.execSQL("INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '83912ff47251ed59518d411e60d99b43')");
+        db.execSQL("INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '073d03a8d07741e79c28051abe4c224c')");
       }
 
       @Override
       public void dropAllTables(@NonNull final SupportSQLiteDatabase db) {
         db.execSQL("DROP TABLE IF EXISTS `receitas`");
         db.execSQL("DROP TABLE IF EXISTS `nutrition_cache`");
+        db.execSQL("DROP TABLE IF EXISTS `nutrition_data`");
         final List<? extends RoomDatabase.Callback> _callbacks = mCallbacks;
         if (_callbacks != null) {
           for (RoomDatabase.Callback _callback : _callbacks) {
@@ -93,7 +99,7 @@ public final class AppDatabase_Impl extends AppDatabase {
       @NonNull
       public RoomOpenHelper.ValidationResult onValidateSchema(
           @NonNull final SupportSQLiteDatabase db) {
-        final HashMap<String, TableInfo.Column> _columnsReceitas = new HashMap<String, TableInfo.Column>(14);
+        final HashMap<String, TableInfo.Column> _columnsReceitas = new HashMap<String, TableInfo.Column>(15);
         _columnsReceitas.put("id", new TableInfo.Column("id", "TEXT", true, 1, null, TableInfo.CREATED_FROM_ENTITY));
         _columnsReceitas.put("nome", new TableInfo.Column("nome", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
         _columnsReceitas.put("descricaoCurta", new TableInfo.Column("descricaoCurta", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
@@ -106,6 +112,7 @@ public final class AppDatabase_Impl extends AppDatabase {
         _columnsReceitas.put("userEmail", new TableInfo.Column("userEmail", "TEXT", false, 0, null, TableInfo.CREATED_FROM_ENTITY));
         _columnsReceitas.put("curtidas", new TableInfo.Column("curtidas", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
         _columnsReceitas.put("favoritos", new TableInfo.Column("favoritos", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
+        _columnsReceitas.put("tags", new TableInfo.Column("tags", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
         _columnsReceitas.put("isSynced", new TableInfo.Column("isSynced", "INTEGER", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
         _columnsReceitas.put("lastModified", new TableInfo.Column("lastModified", "INTEGER", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
         final HashSet<TableInfo.ForeignKey> _foreignKeysReceitas = new HashSet<TableInfo.ForeignKey>(0);
@@ -135,9 +142,29 @@ public final class AppDatabase_Impl extends AppDatabase {
                   + " Expected:\n" + _infoNutritionCache + "\n"
                   + " Found:\n" + _existingNutritionCache);
         }
+        final HashMap<String, TableInfo.Column> _columnsNutritionData = new HashMap<String, TableInfo.Column>(10);
+        _columnsNutritionData.put("id", new TableInfo.Column("id", "TEXT", true, 1, null, TableInfo.CREATED_FROM_ENTITY));
+        _columnsNutritionData.put("receitaId", new TableInfo.Column("receitaId", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
+        _columnsNutritionData.put("calories", new TableInfo.Column("calories", "REAL", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
+        _columnsNutritionData.put("protein", new TableInfo.Column("protein", "REAL", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
+        _columnsNutritionData.put("fat", new TableInfo.Column("fat", "REAL", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
+        _columnsNutritionData.put("carbohydrates", new TableInfo.Column("carbohydrates", "REAL", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
+        _columnsNutritionData.put("fiber", new TableInfo.Column("fiber", "REAL", false, 0, null, TableInfo.CREATED_FROM_ENTITY));
+        _columnsNutritionData.put("sugar", new TableInfo.Column("sugar", "REAL", false, 0, null, TableInfo.CREATED_FROM_ENTITY));
+        _columnsNutritionData.put("isSynced", new TableInfo.Column("isSynced", "INTEGER", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
+        _columnsNutritionData.put("createdAt", new TableInfo.Column("createdAt", "INTEGER", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
+        final HashSet<TableInfo.ForeignKey> _foreignKeysNutritionData = new HashSet<TableInfo.ForeignKey>(0);
+        final HashSet<TableInfo.Index> _indicesNutritionData = new HashSet<TableInfo.Index>(0);
+        final TableInfo _infoNutritionData = new TableInfo("nutrition_data", _columnsNutritionData, _foreignKeysNutritionData, _indicesNutritionData);
+        final TableInfo _existingNutritionData = TableInfo.read(db, "nutrition_data");
+        if (!_infoNutritionData.equals(_existingNutritionData)) {
+          return new RoomOpenHelper.ValidationResult(false, "nutrition_data(com.example.myapplication.core.data.database.entity.NutritionDataEntity).\n"
+                  + " Expected:\n" + _infoNutritionData + "\n"
+                  + " Found:\n" + _existingNutritionData);
+        }
         return new RoomOpenHelper.ValidationResult(true, null);
       }
-    }, "83912ff47251ed59518d411e60d99b43", "a1a360fe8ba5cf298f8db7739f3579b3");
+    }, "073d03a8d07741e79c28051abe4c224c", "930bd3b2aaba9e7b105c0976abba0ad9");
     final SupportSQLiteOpenHelper.Configuration _sqliteConfig = SupportSQLiteOpenHelper.Configuration.builder(config.context).name(config.name).callback(_openCallback).build();
     final SupportSQLiteOpenHelper _helper = config.sqliteOpenHelperFactory.create(_sqliteConfig);
     return _helper;
@@ -148,7 +175,7 @@ public final class AppDatabase_Impl extends AppDatabase {
   protected InvalidationTracker createInvalidationTracker() {
     final HashMap<String, String> _shadowTablesMap = new HashMap<String, String>(0);
     final HashMap<String, Set<String>> _viewTables = new HashMap<String, Set<String>>(0);
-    return new InvalidationTracker(this, _shadowTablesMap, _viewTables, "receitas","nutrition_cache");
+    return new InvalidationTracker(this, _shadowTablesMap, _viewTables, "receitas","nutrition_cache","nutrition_data");
   }
 
   @Override
@@ -159,6 +186,7 @@ public final class AppDatabase_Impl extends AppDatabase {
       super.beginTransaction();
       _db.execSQL("DELETE FROM `receitas`");
       _db.execSQL("DELETE FROM `nutrition_cache`");
+      _db.execSQL("DELETE FROM `nutrition_data`");
       super.setTransactionSuccessful();
     } finally {
       super.endTransaction();
@@ -175,6 +203,7 @@ public final class AppDatabase_Impl extends AppDatabase {
     final HashMap<Class<?>, List<Class<?>>> _typeConvertersMap = new HashMap<Class<?>, List<Class<?>>>();
     _typeConvertersMap.put(ReceitaDao.class, ReceitaDao_Impl.getRequiredConverters());
     _typeConvertersMap.put(NutritionCacheDao.class, NutritionCacheDao_Impl.getRequiredConverters());
+    _typeConvertersMap.put(NutritionDataDao.class, NutritionDataDao_Impl.getRequiredConverters());
     return _typeConvertersMap;
   }
 
@@ -217,6 +246,20 @@ public final class AppDatabase_Impl extends AppDatabase {
           _nutritionCacheDao = new NutritionCacheDao_Impl(this);
         }
         return _nutritionCacheDao;
+      }
+    }
+  }
+
+  @Override
+  public NutritionDataDao nutritionDataDao() {
+    if (_nutritionDataDao != null) {
+      return _nutritionDataDao;
+    } else {
+      synchronized(this) {
+        if(_nutritionDataDao == null) {
+          _nutritionDataDao = new NutritionDataDao_Impl(this);
+        }
+        return _nutritionDataDao;
       }
     }
   }
