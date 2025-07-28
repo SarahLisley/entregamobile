@@ -50,7 +50,7 @@ import android.widget.Toast
 import android.content.Intent
 import android.provider.Settings
 import androidx.compose.material3.TextButton
-import com.example.myapplication.data.GeminiNutritionService
+import com.example.myapplication.core.data.network.GeminiServiceImpl
 import androidx.navigation.NavController
 import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -83,7 +83,7 @@ fun ConfiguracoesScreen(
             com.example.myapplication.core.ui.error.ErrorHandler()
         )
     }
-    val nutritionRepository = remember { NutritionRepository(context, GeminiNutritionService()) }
+    val nutritionRepository = remember { NutritionRepository(context, GeminiServiceImpl("AIzaSyDiwB3lig9_fvI5wbBlILl32Ztqj41XO2I")) }
     val dataSeeder = remember { DataSeeder(context, receitasRepository, nutritionRepository) }
     var receitasFirebase by remember { mutableStateOf<List<Map<String, Any?>>>(emptyList()) }
     var showReceitaDialog by remember { mutableStateOf(false) }

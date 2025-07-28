@@ -16,7 +16,10 @@ fun ReceitaEntity.toMap(): Map<String, Any?> {
         "userId" to userId,
         "userEmail" to userEmail,
         "curtidas" to curtidas,
-        "favoritos" to favoritos
+        "favoritos" to favoritos,
+        "tags" to tags,
+        "isSynced" to isSynced,
+        "lastModified" to lastModified
     )
     
     android.util.Log.d("Extensions", "Convertendo ReceitaEntity para Map")

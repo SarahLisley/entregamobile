@@ -42,6 +42,9 @@ import com.example.myapplication.navigation.AppScreens
 import com.example.myapplication.ui.theme.GreenPrimary
 import com.example.myapplication.ui.theme.OrangeSecondary
 import com.google.firebase.auth.FirebaseAuth
+import com.example.myapplication.feature.receitas.ReceitasViewModel
+import com.example.myapplication.ui.screens.ViewModelFactory
+import com.example.myapplication.feature.receitas.ReceitasUiState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -55,7 +58,10 @@ fun DetalheScreen(
 
     // Compartilha o ViewModel com a TelaInicial
     val navBackStackEntry = navController.getBackStackEntry(AppScreens.TelaInicialScreen.route)
-    val receitasViewModel: ReceitasViewModel = viewModel(viewModelStoreOwner = navBackStackEntry)
+    val receitasViewModel: ReceitasViewModel = viewModel(
+        viewModelStoreOwner = navBackStackEntry,
+        factory = ViewModelFactory(context)
+    )
 
     val uiState by receitasViewModel.uiState.collectAsState()
     val nutritionState by receitasViewModel.nutritionState.collectAsState()
@@ -255,7 +261,7 @@ fun DetalheScreen(
                 }
             }
             isError -> {
-                val msg = (uiState as ReceitasUiState.Error).message
+                val msg = (uiState as ReceitasUiState.Error).error.message
                 Box(
                     modifier = Modifier.fillMaxSize().padding(paddingValues), 
                     contentAlignment = Alignment.Center

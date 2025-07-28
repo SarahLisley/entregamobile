@@ -7,8 +7,12 @@ class GeminiChatService : ChatService {
         return GeminiService.continueChat(history, newMessage)
     }
 
-    override suspend fun generateRecipeFromConversation(history: List<com.example.myapplication.core.data.model.ChatMessage>): com.example.myapplication.core.data.database.entity.ReceitaEntity {
-        return GeminiService.generateRecipeFromConversation(history)
+    override suspend fun generateRecipeFromConversation(
+        history: List<com.example.myapplication.core.data.model.ChatMessage>,
+        userId: String?,
+        userEmail: String?
+    ): com.example.myapplication.core.data.database.entity.ReceitaEntity {
+        return GeminiService.generateRecipeFromConversation(history, userId, userEmail)
     }
     
     override suspend fun generateImageForRecipe(recipe: com.example.myapplication.core.data.database.entity.ReceitaEntity): com.example.myapplication.core.data.database.entity.ReceitaEntity {

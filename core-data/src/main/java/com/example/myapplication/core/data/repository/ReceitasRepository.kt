@@ -29,10 +29,10 @@ class ReceitasRepository @Inject constructor(
     private val connectivityObserver: ConnectivityObserver,
     private val imageStorageService: ImageStorageService,
     private val errorHandler: ErrorHandler
-) {
+) : IReceitasRepository {
     private val db = FirebaseDatabase.getInstance().getReference("receitas")
 
-    suspend fun addReceita(receita: ReceitaEntity): Result<Unit> {
+    override suspend fun addReceita(receita: ReceitaEntity): Result<Unit> {
         return try {
             // Salvar no Room primeiro
             receitaDao.insertReceita(receita)
@@ -55,7 +55,7 @@ class ReceitasRepository @Inject constructor(
         }
     }
 
-    suspend fun salvarReceita(
+    override suspend fun salvarReceita(
         context: Context,
         id: String,
         nome: String,
@@ -74,7 +74,14 @@ class ReceitasRepository @Inject constructor(
             
             // Upload da imagem se fornecida
             if (imagemUri != null) {
-                finalImageUrl = imageStorageService.uploadImage(context, imagemUri, id)
+                // Converter URI para base64 e fazer upload para Supabase
+                val base64Image = context.contentResolver.openInputStream(imagemUri)?.use { inputStream ->
+                    val bytes = inputStream.readBytes()
+                    android.util.Base64.encodeToString(bytes, android.util.Base64.DEFAULT)
+                } ?: ""
+                
+                val fileName = "${id}_${System.currentTimeMillis()}.jpg"
+                finalImageUrl = uploadImagemParaSupabase(base64Image, fileName) ?: ""
             } else if (imagemUrl != null) {
                 finalImageUrl = imagemUrl
             }
@@ -179,11 +186,11 @@ class ReceitasRepository @Inject constructor(
         }
     }
 
-    fun getReceitas(): Flow<List<ReceitaEntity>> {
+    override fun getReceitas(): Flow<List<ReceitaEntity>> {
         return receitaDao.getAllReceitas()
     }
 
-    suspend fun sincronizarComFirebase(): Result<Unit> {
+    override suspend fun sincronizarComFirebase(): Result<Unit> {
         if (!connectivityObserver.isConnected()) {
             return Result.failure(Exception("Sem conexão com a internet"))
         }
@@ -212,7 +219,7 @@ class ReceitasRepository @Inject constructor(
         }
     }
 
-    fun escutarReceitas(onChange: (List<ReceitaEntity>) -> Unit) {
+    override suspend fun escutarReceitas(callback: (List<ReceitaEntity>) -> Unit) {
         db.addValueEventListener(object : com.google.firebase.database.ValueEventListener {
             override fun onDataChange(snapshot: com.google.firebase.database.DataSnapshot) {
                 Log.d("ReceitasRepository", "Dados recebidos do Firebase: ${snapshot.childrenCount} receitas")
@@ -249,189 +256,6 @@ class ReceitasRepository @Inject constructor(
         })
     }
 
-    suspend fun atualizarCurtidas(id: String, curtidas: List<String>): Result<Unit> {
-        return try {
-            // Atualizar no Room primeiro
-            receitaDao.updateCurtidas(id, curtidas)
-
-            // Se online, atualizar no Firebase
-            if (connectivityObserver.isConnected()) {
-                try {
-                    db.child(id).child("curtidas").setValue(curtidas).await()
-                } catch (e: Exception) {
-                    // Se falhar, marcar como não sincronizada
-                    val receita = receitaDao.getReceitaById(id)
-                    receita?.let {
-                        receitaDao.updateReceita(it.copy(isSynced = false))
-                    }
-                }
-            }
-            
-            Result.success(Unit)
-        } catch (e: Exception) {
-            val userError = errorHandler.handleError(e)
-            Result.failure(Exception(userError.message))
-        }
-    }
-
-    suspend fun atualizarFavoritos(id: String, favoritos: List<String>): Result<Unit> {
-        return try {
-            // Atualizar no Room primeiro
-            receitaDao.updateFavoritos(id, favoritos)
-
-            // Se online, atualizar no Firebase
-            if (connectivityObserver.isConnected()) {
-                try {
-                    db.child(id).child("favoritos").setValue(favoritos).await()
-                } catch (e: Exception) {
-                    // Se falhar, marcar como não sincronizada
-                    val receita = receitaDao.getReceitaById(id)
-                    receita?.let {
-                        receitaDao.updateReceita(it.copy(isSynced = false))
-                    }
-                }
-            }
-            
-            Result.success(Unit)
-        } catch (e: Exception) {
-            val userError = errorHandler.handleError(e)
-            Result.failure(Exception(userError.message))
-        }
-    }
-
-    suspend fun deletarReceita(id: String, imageUrl: String?): Result<Unit> {
-        return try {
-            // Deletar imagem se existir
-            if (!imageUrl.isNullOrBlank()) {
-                imageStorageService.deleteImage(imageUrl)
-            }
-            
-            // Deletar dados nutricionais associados
-            nutritionDataDao.deleteNutritionDataByReceitaId(id)
-            
-            // Deletar do Room primeiro
-            receitaDao.deleteReceitaById(id)
-
-            // Se online, deletar do Firebase
-            if (connectivityObserver.isConnected()) {
-                try {
-                    FirebaseSyncService.deleteReceita(id)
-                    // Deletar dados nutricionais também
-                    val nutritionData = nutritionDataDao.getNutritionDataByReceitaId(id)
-                    nutritionData?.let {
-                        FirebaseSyncService.deleteNutritionData(it.id)
-                    }
-                } catch (e: Exception) {
-                    println("Erro ao deletar do Firebase: ${e.message}")
-                }
-            }
-            
-            Result.success(Unit)
-        } catch (e: Exception) {
-            val userError = errorHandler.handleError(e)
-            Result.failure(Exception(userError.message))
-        }
-    }
-
-    suspend fun getUnsyncedReceitas(): List<ReceitaEntity> {
-        return receitaDao.getUnsyncedReceitas()
-    }
-
-    suspend fun markAsSynced(receitaId: String) {
-        receitaDao.markAsSynced(receitaId)
-    }
-    
-    suspend fun getReceitaById(id: String): ReceitaEntity? {
-        return receitaDao.getReceitaById(id)
-    }
-    
-    suspend fun updateReceita(receita: ReceitaEntity): Result<Unit> {
-        return try {
-            receitaDao.updateReceita(receita)
-            
-            // Se online, sincronizar com Firebase
-            if (connectivityObserver.isConnected()) {
-                try {
-                    FirebaseSyncService.updateReceita(receita)
-                } catch (e: Exception) {
-                    // Se falhar, marcar como não sincronizada
-                    receitaDao.updateReceita(receita.copy(isSynced = false))
-                }
-            }
-            
-            Result.success(Unit)
-        } catch (e: Exception) {
-            val userError = errorHandler.handleError(e)
-            Result.failure(Exception(userError.message))
-        }
-    }
-    
-    suspend fun updateImage(
-        context: Context,
-        newImageUri: Uri,
-        oldImageUrl: String?,
-        imageId: String
-    ): String {
-        return imageStorageService.updateImage(context, newImageUri, oldImageUrl, imageId)
-    }
-    
-    suspend fun syncFromFirebase(): Result<Int> {
-        return try {
-            if (!connectivityObserver.isConnected()) {
-                return Result.success(0)
-            }
-            
-            val database = FirebaseDatabase.getInstance()
-            val receitasRef = database.getReference("receitas")
-            
-            Log.d("ReceitasRepository", "Sincronizando receitas do Firebase...")
-            val snapshot = receitasRef.get().await()
-            
-            if (snapshot.exists()) {
-                val receitasData = snapshot.getValue(object : GenericTypeIndicator<Map<String, Map<String, Any>>>() {})
-                
-                if (receitasData != null) {
-                    var syncCount = 0
-                    
-                    for ((id, receitaData) in receitasData) {
-                        try {
-                            val receita = createReceitaFromFirebaseData(id, receitaData)
-                            
-                            // Verificar se a receita já existe localmente
-                            val existingReceita = receitaDao.getReceitaById(id)
-                            
-                            if (existingReceita == null) {
-                                // Nova receita do Firebase
-                                receitaDao.insertReceita(receita)
-                                syncCount++
-                                Log.d("ReceitasRepository", "Nova receita sincronizada do Firebase: ${receita.nome}")
-                            } else if (receita.lastModified > existingReceita.lastModified) {
-                                // Receita atualizada no Firebase
-                                receitaDao.updateReceita(receita)
-                                syncCount++
-                                Log.d("ReceitasRepository", "Receita atualizada do Firebase: ${receita.nome}")
-                            }
-                        } catch (e: Exception) {
-                            Log.e("ReceitasRepository", "Erro ao sincronizar receita $id: ${e.message}")
-                        }
-                    }
-                    
-                    Log.d("ReceitasRepository", "Total de receitas sincronizadas do Firebase: $syncCount")
-                    Result.success(syncCount)
-                } else {
-                    Log.d("ReceitasRepository", "Nenhuma receita encontrada no Firebase")
-                    Result.success(0)
-                }
-            } else {
-                Log.d("ReceitasRepository", "Nenhuma receita encontrada no Firebase")
-                Result.success(0)
-            }
-        } catch (e: Exception) {
-            Log.e("ReceitasRepository", "Erro ao sincronizar do Firebase: ${e.message}")
-            Result.failure(e)
-        }
-    }
-    
     private fun createReceitaFromFirebaseData(id: String, data: Map<String, Any>): ReceitaEntity {
         return ReceitaEntity(
             id = id,
@@ -450,6 +274,161 @@ class ReceitasRepository @Inject constructor(
             isSynced = true,
             lastModified = (data["lastModified"] as? Long) ?: System.currentTimeMillis()
         )
+    }
+
+    override suspend fun deletarReceita(id: String, imageUrl: String?): Result<Unit> {
+        return try {
+            // 1. Deletar do Firebase
+            val firebaseDeleted = FirebaseSyncService.deleteReceita(id)
+            if (!firebaseDeleted) {
+                Log.w("ReceitasRepository", "Falha ao deletar do Firebase: $id")
+            }
+
+            // 2. Deletar imagem do Supabase se existir
+            if (!imageUrl.isNullOrBlank()) {
+                val supabaseDeleted = SupabaseImageUploader.deleteImageFromUrl(imageUrl)
+                if (!supabaseDeleted) {
+                    Log.w("ReceitasRepository", "Falha ao deletar imagem do Supabase: $imageUrl")
+                }
+            }
+
+            // 3. Deletar do banco local
+            receitaDao.deleteReceitaById(id)
+            
+            Log.d("ReceitasRepository", "Receita deletada com sucesso: $id")
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e("ReceitasRepository", "Erro ao deletar receita: ${e.message}")
+            val userError = errorHandler.handleError(e)
+            Result.failure(Exception(userError.message))
+        }
+    }
+
+    override suspend fun atualizarCurtidas(id: String, curtidas: List<String>): Result<Unit> {
+        return try {
+            receitaDao.updateCurtidas(id, curtidas)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            val userError = errorHandler.handleError(e)
+            Result.failure(Exception(userError.message))
+        }
+    }
+
+    override suspend fun atualizarFavoritos(id: String, favoritos: List<String>): Result<Unit> {
+        return try {
+            receitaDao.updateFavoritos(id, favoritos)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            val userError = errorHandler.handleError(e)
+            Result.failure(Exception(userError.message))
+        }
+    }
+
+    override suspend fun syncFromFirebase(): Result<Int> {
+        return try {
+            val snapshot = db.get().await()
+            val receitasFirebase = snapshot.children.mapNotNull { child ->
+                child.getValue(ReceitaEntity::class.java)
+            }
+            
+            var syncCount = 0
+            for (receita in receitasFirebase) {
+                try {
+                    receitaDao.insertReceita(receita)
+                    syncCount++
+                } catch (e: Exception) {
+                    // Ignorar erros individuais
+                }
+            }
+            
+            Result.success(syncCount)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun getReceitaById(id: String): ReceitaEntity? {
+        return receitaDao.getReceitaById(id)
+    }
+
+    override suspend fun updateReceita(receita: ReceitaEntity): Result<Unit> {
+        return try {
+            receitaDao.updateReceita(receita)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            val userError = errorHandler.handleError(e)
+            Result.failure(Exception(userError.message))
+        }
+    }
+
+    override suspend fun deleteReceita(id: String): Result<Unit> {
+        return try {
+            receitaDao.deleteReceitaById(id)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            val userError = errorHandler.handleError(e)
+            Result.failure(Exception(userError.message))
+        }
+    }
+
+    override suspend fun updateImage(context: Context, novaImagemUri: Uri, imagemUrlAntiga: String?, id: String): String? {
+        return try {
+            // Converter URI para base64 e fazer upload para Supabase
+            val base64Image = context.contentResolver.openInputStream(novaImagemUri)?.use { inputStream ->
+                val bytes = inputStream.readBytes()
+                android.util.Base64.encodeToString(bytes, android.util.Base64.DEFAULT)
+            } ?: ""
+            
+            val fileName = "${id}_${System.currentTimeMillis()}.jpg"
+            val novaImagemUrl = uploadImagemParaSupabase(base64Image, fileName)
+            
+            novaImagemUrl ?: imagemUrlAntiga
+        } catch (e: Exception) {
+            imagemUrlAntiga
+        }
+    }
+
+    override suspend fun curtirReceita(id: String, userId: String, curtidas: List<String>): Result<Unit> {
+        return try {
+            val receita = receitaDao.getReceitaById(id)
+            if (receita != null) {
+                val novasCurtidas = if (curtidas.contains(userId)) {
+                    curtidas - userId
+                } else {
+                    curtidas + userId
+                }
+                receitaDao.updateReceita(receita.copy(curtidas = novasCurtidas))
+            }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun favoritarReceita(id: String, userId: String, favoritos: List<String>): Result<Unit> {
+        return try {
+            val receita = receitaDao.getReceitaById(id)
+            if (receita != null) {
+                val novosFavoritos = if (favoritos.contains(userId)) {
+                    favoritos - userId
+                } else {
+                    favoritos + userId
+                }
+                receitaDao.updateReceita(receita.copy(favoritos = novosFavoritos))
+            }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    // Implementação dos métodos de verificação de permissões
+    override fun canEditReceita(receita: ReceitaEntity, currentUserId: String?): Boolean {
+        return currentUserId != null && receita.userId == currentUserId
+    }
+    
+    override fun canDeleteReceita(receita: ReceitaEntity, currentUserId: String?): Boolean {
+        return currentUserId != null && receita.userId == currentUserId
     }
 }
 

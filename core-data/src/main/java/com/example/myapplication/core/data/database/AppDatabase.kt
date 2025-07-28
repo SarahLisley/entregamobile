@@ -5,6 +5,8 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.myapplication.core.data.database.dao.NutritionCacheDao
 import com.example.myapplication.core.data.database.dao.NutritionDataDao
 import com.example.myapplication.core.data.database.dao.ReceitaDao
@@ -19,7 +21,7 @@ import com.example.myapplication.core.data.database.converters.Converters
         NutritionCacheEntity::class,
         NutritionDataEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -32,13 +34,27 @@ abstract class AppDatabase : RoomDatabase() {
         @Volatile
         private var INSTANCE: AppDatabase? = null
 
+        // Migração de versão 1 para 2: Adicionar campo tags à tabela receitas
+        private val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Adicionar coluna tags se não existir
+                try {
+                    database.execSQL("ALTER TABLE receitas ADD COLUMN tags TEXT DEFAULT '[]'")
+                } catch (e: Exception) {
+                    // Coluna já existe, ignorar erro
+                }
+            }
+        }
+
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     AppDatabase::class.java,
                     "nutrilivre_database"
-                ).build()
+                )
+                .addMigrations(MIGRATION_1_2)
+                .build()
                 INSTANCE = instance
                 instance
             }

@@ -70,6 +70,9 @@ dependencies {
     // DataStore
     implementation(libs.androidx.datastore.preferences)
     
+    // Google Generative AI
+    implementation(libs.google.generativeai)
+    
     // Testes
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

@@ -29,6 +29,8 @@ object GeminiService : NutritionService, ChatService {
     override suspend fun getNutritionalInfo(recipe: ReceitaEntity): RecipeNutrition {
         return withContext(Dispatchers.IO) {
             try {
+                Log.d("GeminiService", "Iniciando análise nutricional para: ${recipe.nome}")
+                
                 val prompt = """
                     Analise a seguinte receita e forneça uma análise nutricional estimada por porção.
                     Nome da Receita: ${recipe.nome}
@@ -54,12 +56,17 @@ object GeminiService : NutritionService, ChatService {
                 val response = generativeModel.generateContent(prompt)
                 val responseText = response.text ?: throw Exception("Resposta vazia do Gemini")
                 
-                // Extrair JSON da resposta
-                val jsonMatch = Regex("\\{[^}]*\"calories\"[^}]*\\}").find(responseText)
-                val jsonString = jsonMatch?.value ?: throw Exception("JSON não encontrado na resposta")
+                Log.d("GeminiService", "Resposta do Gemini: $responseText")
                 
-                gson.fromJson(jsonString, RecipeNutrition::class.java)
+                // Extrair JSON da resposta com parsing mais robusto
+                val jsonString = extractJsonFromResponse(responseText, "calories")
+                    ?: throw Exception("JSON não encontrado na resposta")
+                
+                val nutrition = gson.fromJson(jsonString, RecipeNutrition::class.java)
+                Log.d("GeminiService", "Análise nutricional gerada com sucesso: $nutrition")
+                nutrition
             } catch (e: Exception) {
+                Log.e("GeminiService", "Erro na análise nutricional: ${e.message}")
                 // Fallback para valores padrão em caso de erro
                 RecipeNutrition(250.0, 10.0, 12.0, 25.0, 2.0, 8.0)
             }
@@ -69,6 +76,8 @@ object GeminiService : NutritionService, ChatService {
     override suspend fun continueChat(history: List<ChatMessage>, newMessage: String): String {
         return withContext(Dispatchers.IO) {
             try {
+                Log.d("GeminiService", "Iniciando chat com mensagem: $newMessage")
+                
                 val conversationHistory = history.joinToString("\n") { 
                     "${if (it.isUser) "Usuário" else "Chef Gemini"}: ${it.content}" 
                 }
@@ -88,14 +97,22 @@ object GeminiService : NutritionService, ChatService {
                 """.trimIndent()
 
                 val response = generativeModel.generateContent(prompt)
-                response.text ?: "Desculpe, não consegui processar sua mensagem."
+                val responseText = response.text ?: "Desculpe, não consegui processar sua mensagem."
+                
+                Log.d("GeminiService", "Resposta do chat: $responseText")
+                responseText
             } catch (e: Exception) {
+                Log.e("GeminiService", "Erro no chat: ${e.message}")
                 "Desculpe, ocorreu um erro ao processar sua mensagem. Tente novamente."
             }
         }
     }
 
-    override suspend fun generateRecipeFromConversation(history: List<ChatMessage>): ReceitaEntity {
+    override suspend fun generateRecipeFromConversation(
+        history: List<ChatMessage>,
+        userId: String?,
+        userEmail: String?
+    ): ReceitaEntity {
         return withContext(Dispatchers.IO) {
             try {
                 val conversationHistory = history.joinToString("\n") { 
@@ -128,11 +145,15 @@ object GeminiService : NutritionService, ChatService {
                 val response = generativeModel.generateContent(prompt)
                 val responseText = response.text ?: throw Exception("Resposta vazia do Gemini")
                 
-                // Extrair JSON da resposta
-                val jsonMatch = Regex("\\{[^}]*\"nome\"[^}]*\\}").find(responseText)
-                val jsonString = jsonMatch?.value ?: throw Exception("JSON não encontrado na resposta")
+                // Extrair JSON da resposta com parsing mais robusto
+                val jsonString = extractJsonFromResponse(responseText, "nome")
+                    ?: throw Exception("JSON não encontrado na resposta")
                 
                 val recipeData = gson.fromJson(jsonString, RecipeData::class.java)
+                
+                // Usar informações do usuário logado se fornecidas, senão usar valores padrão
+                val finalUserId = userId ?: "gemini_generated"
+                val finalUserEmail = userEmail ?: "chef@gemini.com"
                 
                 // Criar receita sem imagem inicialmente
                 ReceitaEntity(
@@ -144,8 +165,8 @@ object GeminiService : NutritionService, ChatService {
                     modoPreparo = recipeData.modoPreparo,
                     tempoPreparo = recipeData.tempoPreparo,
                     porcoes = recipeData.porcoes,
-                    userId = "gemini_generated",
-                    userEmail = "chef@gemini.com",
+                    userId = finalUserId,
+                    userEmail = finalUserEmail,
                     curtidas = emptyList(),
                     favoritos = emptyList(),
                     tags = recipeData.tags,
@@ -153,6 +174,9 @@ object GeminiService : NutritionService, ChatService {
                 )
             } catch (e: Exception) {
                 // Receita padrão em caso de erro
+                val finalUserId = userId ?: "gemini_generated"
+                val finalUserEmail = userEmail ?: "chef@gemini.com"
+                
                 ReceitaEntity(
                     id = System.currentTimeMillis().toString(),
                     nome = "Receita Especial",
@@ -162,8 +186,8 @@ object GeminiService : NutritionService, ChatService {
                     modoPreparo = listOf("Passo 1", "Passo 2", "Passo 3"),
                     tempoPreparo = "30 minutos",
                     porcoes = 4,
-                    userId = "gemini_generated",
-                    userEmail = "chef@gemini.com",
+                    userId = finalUserId,
+                    userEmail = finalUserEmail,
                     curtidas = emptyList(),
                     favoritos = emptyList(),
                     tags = listOf("especial", "gerado"),
@@ -219,4 +243,58 @@ object GeminiService : NutritionService, ChatService {
         val porcoes: Int,
         val tags: List<String> = emptyList()
     )
+    
+    /**
+     * Extrai JSON de uma resposta de texto usando parsing robusto
+     * @param responseText Texto da resposta
+     * @param requiredKey Chave obrigatória que deve estar no JSON
+     * @return JSON extraído ou null se não encontrado
+     */
+    private fun extractJsonFromResponse(responseText: String, requiredKey: String): String? {
+        try {
+            // Tentar encontrar JSON completo usando diferentes padrões
+            val patterns = listOf(
+                // Padrão 1: JSON simples entre chaves
+                Regex("\\{[^}]*\"$requiredKey\"[^}]*\\}"),
+                // Padrão 2: JSON com múltiplas linhas
+                Regex("\\{[\\s\\S]*?\"$requiredKey\"[\\s\\S]*?\\}"),
+                // Padrão 3: JSON com escape de caracteres
+                Regex("\\{[^}]*\"$requiredKey\"[^}]*\\}", RegexOption.DOT_MATCHES_ALL)
+            )
+            
+            for (pattern in patterns) {
+                val match = pattern.find(responseText)
+                if (match != null) {
+                    val jsonString = match.value
+                    // Validar se é um JSON válido
+                    try {
+                        gson.fromJson(jsonString, Map::class.java)
+                        return jsonString
+                    } catch (e: Exception) {
+                        Log.w("GeminiService", "JSON inválido encontrado: $jsonString")
+                        continue
+                    }
+                }
+            }
+            
+            // Se nenhum padrão funcionou, tentar extrair manualmente
+            val startIndex = responseText.indexOf('{')
+            val endIndex = responseText.lastIndexOf('}')
+            
+            if (startIndex != -1 && endIndex != -1 && endIndex > startIndex) {
+                val jsonString = responseText.substring(startIndex, endIndex + 1)
+                try {
+                    gson.fromJson(jsonString, Map::class.java)
+                    return jsonString
+                } catch (e: Exception) {
+                    Log.w("GeminiService", "JSON manual inválido: $jsonString")
+                }
+            }
+            
+            return null
+        } catch (e: Exception) {
+            Log.e("GeminiService", "Erro ao extrair JSON: ${e.message}")
+            return null
+        }
+    }
 } 

@@ -82,7 +82,10 @@ import androidx.compose.foundation.clickable
 import android.util.Log
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Sync
-import com.example.myapplication.data.TestImageGeneration
+import com.example.myapplication.core.data.network.ImageGenerationService
+import com.example.myapplication.feature.receitas.ReceitasViewModel
+import com.example.myapplication.ui.screens.ViewModelFactory
+import com.example.myapplication.feature.receitas.ReceitasUiState
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
@@ -91,7 +94,10 @@ fun TelaInicial(navController: NavHostController) {
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val navBackStackEntry = navController.getBackStackEntry(AppScreens.TelaInicialScreen.route)
-    val receitasViewModel: ReceitasViewModel = viewModel(viewModelStoreOwner = navBackStackEntry)
+    val receitasViewModel: ReceitasViewModel = viewModel(
+        viewModelStoreOwner = navBackStackEntry,
+        factory = ViewModelFactory(context)
+    )
     val uiState by receitasViewModel.uiState.collectAsState()
     val recommendedRecipes by receitasViewModel.recommendedRecipes.collectAsState()
     val authViewModel: AuthViewModel = viewModel()
@@ -190,7 +196,7 @@ fun TelaInicial(navController: NavHostController) {
                 }
             }
             is ReceitasUiState.Error -> {
-                val msg = (uiState as ReceitasUiState.Error).message
+                val msg = (uiState as ReceitasUiState.Error).error.message
                 LaunchedEffect(msg) {
                     snackbarHostState.showSnackbar(message = msg)
                 }
@@ -438,7 +444,13 @@ fun TelaInicial(navController: NavHostController) {
             confirmButton = {
                 Button(
                     onClick = {
-                        TestImageGeneration.testImageGeneration(testRecipeName)
+                        scope.launch {
+                            try {
+                                ImageGenerationService().generateRecipeImage(testRecipeName)
+                            } catch (e: Exception) {
+                                Log.e("TelaInicial", "Erro ao gerar imagem: ${e.message}")
+                            }
+                        }
                         showTestDialog = false
                         scope.launch {
                             snackbarHostState.showSnackbar("Teste iniciado! Verifique os logs.")

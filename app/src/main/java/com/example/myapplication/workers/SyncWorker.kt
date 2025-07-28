@@ -8,7 +8,7 @@ import com.example.myapplication.core.data.database.AppDatabase
 import com.example.myapplication.core.data.repository.ReceitasRepository
 import com.example.myapplication.core.data.network.ConnectivityObserver
 import com.example.myapplication.core.data.repository.NutritionRepository
-import com.example.myapplication.data.GeminiNutritionService
+import com.example.myapplication.core.data.network.GeminiServiceImpl
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -31,7 +31,7 @@ class SyncWorker(
                 imageStorageService,
                 errorHandler
             )
-            val nutritionRepository = NutritionRepository(context, GeminiNutritionService())
+            val nutritionRepository = NutritionRepository(context, GeminiServiceImpl("AIzaSyDiwB3lig9_fvI5wbBlILl32Ztqj41XO2I"))
 
             // Verificar se há conectividade
             if (!connectivityObserver.isConnected()) {

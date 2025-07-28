@@ -4,19 +4,21 @@ import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.myapplication.core.data.repository.ReceitasRepository
 import com.example.myapplication.core.ui.error.ErrorHandler
 import com.example.myapplication.core.ui.error.UserFriendlyError
 import com.example.myapplication.core.data.repository.NutritionRepository
 import com.example.myapplication.core.data.database.entity.ReceitaEntity
 import com.example.myapplication.core.data.model.RecipeNutrition
-import dagger.hilt.android.lifecycle.HiltViewModel
+import com.example.myapplication.core.data.repository.IReceitasRepository
+// import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
-import javax.inject.Inject
+// import javax.inject.Inject
+
+
 
 sealed class ReceitasUiState {
     object Loading : ReceitasUiState()
@@ -24,11 +26,12 @@ sealed class ReceitasUiState {
     data class Error(val error: UserFriendlyError) : ReceitasUiState()
 }
 
-@HiltViewModel
-class ReceitasViewModel @Inject constructor(
-    private val receitasRepository: ReceitasRepository,
+class ReceitasViewModel(
+    private val receitasRepository: IReceitasRepository,
     private val nutritionRepository: NutritionRepository,
-    private val errorHandler: ErrorHandler
+    private val errorHandler: ErrorHandler,
+    private val currentUserId: String? = null,
+    private val currentUserEmail: String? = null
 ) : ViewModel() {
     
     private val _uiState = MutableStateFlow<ReceitasUiState>(ReceitasUiState.Loading)
@@ -53,6 +56,8 @@ class ReceitasViewModel @Inject constructor(
                 // Observar receitas do Room (fonte única da verdade)
                 receitasRepository.getReceitas().collect { receitas ->
                     _uiState.value = ReceitasUiState.Success(receitas)
+                    // Carregar recomendações após as receitas serem carregadas
+                    carregarReceitasRecomendadas(receitas)
                 }
             } catch (e: Exception) {
                 val userError = errorHandler.handleError(e)
@@ -121,14 +126,32 @@ class ReceitasViewModel @Inject constructor(
     fun deletarReceita(id: String, imageUrl: String?) {
         viewModelScope.launch {
             _uiState.value = ReceitasUiState.Loading
-            receitasRepository.deletarReceita(id, imageUrl)
-                .onSuccess {
-                    _eventChannel.send("Receita deletada com sucesso!")
+            try {
+                // Verificar se o usuário atual é o proprietário da receita
+                val receita = receitasRepository.getReceitaById(id)
+                if (receita == null) {
+                    _eventChannel.send("Receita não encontrada!")
+                    return@launch
                 }
-                .onFailure { exception ->
-                    val userError = errorHandler.handleError(exception)
-                    _uiState.value = ReceitasUiState.Error(userError)
+                
+                // Verificar permissão: apenas o proprietário pode deletar
+                if (currentUserId != null && receita.userId != currentUserId) {
+                    _eventChannel.send("Você não tem permissão para deletar esta receita!")
+                    return@launch
                 }
+                
+                receitasRepository.deletarReceita(id, imageUrl)
+                    .onSuccess {
+                        _eventChannel.send("Receita deletada com sucesso!")
+                    }
+                    .onFailure { exception ->
+                        val userError = errorHandler.handleError(exception)
+                        _uiState.value = ReceitasUiState.Error(userError)
+                    }
+            } catch (e: Exception) {
+                val userError = errorHandler.handleError(e)
+                _uiState.value = ReceitasUiState.Error(userError)
+            }
         }
     }
 
@@ -181,37 +204,46 @@ class ReceitasViewModel @Inject constructor(
             try {
                 // Buscar receita atual do Room
                 val receitaAtual = receitasRepository.getReceitaById(id)
-                if (receitaAtual != null) {
-                    var imageUrl = imagemUrlAntiga
-                    
-                    // Se há uma nova imagem, fazer upload
-                    if (novaImagemUri != null) {
-                        imageUrl = receitasRepository.updateImage(
-                            context, novaImagemUri, imagemUrlAntiga, id
-                        )
-                    }
-                    
-                    val receitaAtualizada = receitaAtual.copy(
-                        nome = nome,
-                        descricaoCurta = descricaoCurta,
-                        imagemUrl = imageUrl ?: "",
-                        ingredientes = ingredientes,
-                        modoPreparo = modoPreparo,
-                        tempoPreparo = tempoPreparo,
-                        porcoes = porcoes,
-                        lastModified = System.currentTimeMillis()
-                    )
-                    
-                    // Atualizar no repositório
-                    receitasRepository.updateReceita(receitaAtualizada)
-                        .onSuccess {
-                            _eventChannel.send("Receita editada com sucesso!")
-                        }
-                        .onFailure { exception ->
-                            val userError = errorHandler.handleError(exception)
-                            _uiState.value = ReceitasUiState.Error(userError)
-                        }
+                if (receitaAtual == null) {
+                    _eventChannel.send("Receita não encontrada!")
+                    return@launch
                 }
+                
+                // Verificar permissão: apenas o proprietário pode editar
+                if (currentUserId != null && receitaAtual.userId != currentUserId) {
+                    _eventChannel.send("Você não tem permissão para editar esta receita!")
+                    return@launch
+                }
+                
+                var imageUrl = imagemUrlAntiga
+                
+                // Se há uma nova imagem, fazer upload
+                if (novaImagemUri != null) {
+                    imageUrl = receitasRepository.updateImage(
+                        context, novaImagemUri, imagemUrlAntiga, id
+                    )
+                }
+                
+                val receitaAtualizada = receitaAtual.copy(
+                    nome = nome,
+                    descricaoCurta = descricaoCurta,
+                    imagemUrl = imageUrl ?: "",
+                    ingredientes = ingredientes,
+                    modoPreparo = modoPreparo,
+                    tempoPreparo = tempoPreparo,
+                    porcoes = porcoes,
+                    lastModified = System.currentTimeMillis()
+                )
+                
+                // Atualizar no repositório
+                receitasRepository.updateReceita(receitaAtualizada)
+                    .onSuccess {
+                        _eventChannel.send("Receita editada com sucesso!")
+                    }
+                    .onFailure { exception ->
+                        val userError = errorHandler.handleError(exception)
+                        _uiState.value = ReceitasUiState.Error(userError)
+                    }
             } catch (e: Exception) {
                 val userError = errorHandler.handleError(e)
                 _uiState.value = ReceitasUiState.Error(userError)
@@ -266,4 +298,62 @@ class ReceitasViewModel @Inject constructor(
     fun limparInformacoesNutricionais() {
         _nutritionState.value = null
     }
+    
+    // Função para sincronizar receitas do Firebase
+    fun syncFromFirebase() {
+        viewModelScope.launch {
+            try {
+                _uiState.value = ReceitasUiState.Loading
+                
+                val result = receitasRepository.syncFromFirebase()
+                
+                if (result.isSuccess) {
+                    val syncCount = result.getOrNull() ?: 0
+                    if (syncCount > 0) {
+                        _eventChannel.send("$syncCount receitas sincronizadas do Firebase")
+                    }
+                    
+                    // Recarregar receitas após sincronização
+                    carregarReceitas()
+                } else {
+                    _eventChannel.send("Erro ao sincronizar do Firebase")
+                }
+            } catch (e: Exception) {
+                _eventChannel.send("Erro ao sincronizar: ${e.message}")
+            }
+        }
+    }
+    
+    // Estado para receitas recomendadas
+    private val _recommendedRecipes = MutableStateFlow<List<ReceitaEntity>>(emptyList())
+    val recommendedRecipes: StateFlow<List<ReceitaEntity>> = _recommendedRecipes
+    
+    // Função para carregar receitas recomendadas
+    private fun carregarReceitasRecomendadas(allRecipes: List<ReceitaEntity>) {
+        viewModelScope.launch {
+            try {
+                // Por enquanto, retornar as primeiras 5 receitas como recomendadas
+                val recommended = allRecipes.take(5)
+                _recommendedRecipes.value = recommended
+            } catch (e: Exception) {
+                println("Erro ao carregar recomendações: ${e.message}")
+            }
+        }
+    }
+
+    // Função para verificar se o usuário atual pode editar uma receita
+    fun canEditReceita(receita: ReceitaEntity): Boolean {
+        return receitasRepository.canEditReceita(receita, currentUserId)
+    }
+    
+    // Função para verificar se o usuário atual pode deletar uma receita
+    fun canDeleteReceita(receita: ReceitaEntity): Boolean {
+        return receitasRepository.canDeleteReceita(receita, currentUserId)
+    }
+    
+    // Função para obter o ID do usuário atual
+    fun getCurrentUserId(): String? = currentUserId
+    
+    // Função para obter o email do usuário atual
+    fun getCurrentUserEmail(): String? = currentUserEmail
 } 

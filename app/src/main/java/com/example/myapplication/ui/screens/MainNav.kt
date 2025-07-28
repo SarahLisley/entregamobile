@@ -124,10 +124,18 @@ fun MainNav() {
                 ) 
             }
             
+            // Obter informações do usuário logado
+            val authViewModel: AuthViewModel = viewModel()
+            val usuario = authViewModel.usuarioAtual()
+            val currentUserId = usuario?.uid
+            val currentUserEmail = usuario?.email
+            
             val chatViewModel = remember {
                 com.example.myapplication.feature.receitas.ChatViewModel(
                     com.example.myapplication.data.GeminiChatService(),
-                    receitasRepository
+                    receitasRepository,
+                    currentUserId,
+                    currentUserEmail
                 )
             }
             

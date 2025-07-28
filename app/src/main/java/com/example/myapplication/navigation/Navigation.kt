@@ -14,12 +14,14 @@ import androidx.navigation.navArgument
 import com.example.myapplication.feature.receitas.ChatScreen
 import com.example.myapplication.feature.receitas.ChatViewModel
 import com.example.myapplication.feature.receitas.ProfileScreen
-import com.example.myapplication.data.GeminiChatService
+import com.example.myapplication.core.data.network.GeminiServiceImpl
 import com.example.myapplication.core.data.database.AppDatabase
 import com.example.myapplication.core.data.network.ConnectivityObserver
 import com.example.myapplication.core.data.repository.ReceitasRepository
 import com.example.myapplication.core.data.storage.ImageStorageService
 import com.example.myapplication.core.ui.error.ErrorHandler
+import com.example.myapplication.ui.screens.AuthViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 
 // Rotas nomeadas
 sealed class AppScreens(val route: String) {
@@ -89,8 +91,19 @@ fun AppNavigation() {
                 ) 
             }
             
+            // Obter informações do usuário logado
+            val authViewModel: AuthViewModel = viewModel()
+            val usuario = authViewModel.usuarioAtual()
+            val currentUserId = usuario?.uid
+            val currentUserEmail = usuario?.email
+            
             val chatViewModel = remember {
-                ChatViewModel(GeminiChatService(), receitasRepository)
+                ChatViewModel(
+                    GeminiServiceImpl("AIzaSyDiwB3lig9_fvI5wbBlILl32Ztqj41XO2I"), 
+                    receitasRepository,
+                    currentUserId,
+                    currentUserEmail
+                )
             }
             
             ChatScreen(

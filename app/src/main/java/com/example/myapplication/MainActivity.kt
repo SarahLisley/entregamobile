@@ -20,7 +20,8 @@ import com.example.myapplication.core.data.network.ConnectivityObserver
 import com.example.myapplication.core.data.storage.ImageStorageService
 import com.example.myapplication.core.ui.error.ErrorHandler
 import com.example.myapplication.workers.SyncWorker
-import com.example.myapplication.data.GeminiNutritionService
+import com.example.myapplication.core.data.network.GeminiServiceImpl
+import com.example.myapplication.core.data.SupabaseImageUploader
 // import dagger.hilt.android.AndroidEntryPoint
 import java.util.Calendar
 import java.util.concurrent.TimeUnit
@@ -53,6 +54,12 @@ class MainActivity : ComponentActivity() {
         // Inicializar dependências manualmente
         userPreferencesRepository = UserPreferencesRepository(this)
         
+        // Configurar Supabase
+        SupabaseImageUploader.configure(
+            BuildConfig.SUPABASE_URL,
+            BuildConfig.SUPABASE_KEY
+        )
+        
         // Criar instâncias dos repositórios necessários
         val database = AppDatabase.getDatabase(this)
         val connectivityObserver = ConnectivityObserver(this)
@@ -65,7 +72,7 @@ class MainActivity : ComponentActivity() {
             imageStorageService,
             errorHandler
         )
-        val nutritionRepository = NutritionRepository(this, GeminiNutritionService())
+        val nutritionRepository = NutritionRepository(this, GeminiServiceImpl(BuildConfig.GEMINI_API_KEY))
         
         dataSeeder = DataSeeder(this, receitasRepository, nutritionRepository)
         

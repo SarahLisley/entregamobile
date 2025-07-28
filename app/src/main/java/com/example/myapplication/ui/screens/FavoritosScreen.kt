@@ -8,12 +8,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
@@ -23,15 +23,20 @@ import com.example.myapplication.core.data.repository.ReceitasRepository
 import kotlinx.coroutines.launch
 import coil.compose.AsyncImage
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.myapplication.ui.screens.ReceitasViewModel
-import com.example.myapplication.ui.screens.ReceitasUiState
+import com.example.myapplication.feature.receitas.ReceitasViewModel
+import com.example.myapplication.ui.screens.ViewModelFactory
+import com.example.myapplication.feature.receitas.ReceitasUiState
 import com.example.myapplication.ui.screens.AuthViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FavoritosScreen(navController: NavHostController) {
+    val context = LocalContext.current
     val navBackStackEntry = navController.getBackStackEntry(AppScreens.TelaInicialScreen.route)
-    val receitasViewModel: ReceitasViewModel = viewModel(viewModelStoreOwner = navBackStackEntry)
+    val receitasViewModel: ReceitasViewModel = viewModel(
+        viewModelStoreOwner = navBackStackEntry,
+        factory = ViewModelFactory(context)
+    )
     val authViewModel: AuthViewModel = viewModel()
     val uiState by receitasViewModel.uiState.collectAsState()
     val currentUser = authViewModel.usuarioAtual()
@@ -137,7 +142,7 @@ fun FavoritosScreen(navController: NavHostController) {
                 }
             }
             is ReceitasUiState.Error -> {
-                val msg = state.message
+                val msg = state.error.message
                 Box(modifier = Modifier.fillMaxSize().padding(paddingValues), contentAlignment = Alignment.Center) {
                     Text(msg)
                 }

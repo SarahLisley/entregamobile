@@ -13,7 +13,9 @@ import kotlinx.coroutines.launch
 
 class ChatViewModel(
     private val chatService: ChatService,
-    private val receitasRepository: ReceitasRepository
+    private val receitasRepository: ReceitasRepository,
+    private val currentUserId: String? = null,
+    private val currentUserEmail: String? = null
 ) : ViewModel() {
     
     private val _messages = MutableStateFlow<List<ChatMessage>>(emptyList())
@@ -86,8 +88,12 @@ class ChatViewModel(
             _imageGenerationStatus.value = ImageGenerationStatus.Idle
             
             try {
-                // Gerar receita da conversa
-                val recipe = chatService.generateRecipeFromConversation(_messages.value)
+                // Gerar receita da conversa com informações do usuário logado
+                val recipe = chatService.generateRecipeFromConversation(
+                    _messages.value,
+                    currentUserId,
+                    currentUserEmail
+                )
                 
                 // Atualizar status para geração de imagem
                 _imageGenerationStatus.value = ImageGenerationStatus.Generating

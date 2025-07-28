@@ -14,6 +14,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
@@ -22,16 +23,21 @@ import com.example.myapplication.core.data.repository.ReceitasRepository
 import com.example.myapplication.navigation.AppScreens
 import com.example.myapplication.ui.components.BottomNavigationBar
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.myapplication.ui.screens.ReceitasViewModel
-import com.example.myapplication.ui.screens.ReceitasUiState
+import com.example.myapplication.feature.receitas.ReceitasViewModel
+import com.example.myapplication.ui.screens.ViewModelFactory
+import com.example.myapplication.feature.receitas.ReceitasUiState
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BuscaScreen(navController: NavHostController) {
+    val context = LocalContext.current
     var searchText by remember { mutableStateOf("") }
     val navBackStackEntry = navController.getBackStackEntry(AppScreens.TelaInicialScreen.route)
-    val receitasViewModel: ReceitasViewModel = viewModel(viewModelStoreOwner = navBackStackEntry)
+    val receitasViewModel: ReceitasViewModel = viewModel(
+        viewModelStoreOwner = navBackStackEntry,
+        factory = ViewModelFactory(context)
+    )
     val uiState by receitasViewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     // Coleta eventos únicos do ViewModel para exibir Snackbars
@@ -89,7 +95,7 @@ fun BuscaScreen(navController: NavHostController) {
                     CircularProgressIndicator()
                 }
             } else if (uiState is ReceitasUiState.Error) {
-                val msg = (uiState as ReceitasUiState.Error).message
+                val msg = (uiState as ReceitasUiState.Error).error.message
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text(msg)
                 }
