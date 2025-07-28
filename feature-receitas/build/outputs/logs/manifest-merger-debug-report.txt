@@ -1,16 +1,16 @@
 -- Merging decision tree log ---
 manifest
-ADDED from /home/izael/Projetos/Android/Nutri/entregamobile/feature-receitas/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest14685586637833767849.xml:2:13-83
-INJECTED from /home/izael/Projetos/Android/Nutri/entregamobile/feature-receitas/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest14685586637833767849.xml:2:13-83
+ADDED from /home/izael/Projetos/Android/Nutri/entregamobile/feature-receitas/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest18057006270394719148.xml:2:13-83
+INJECTED from /home/izael/Projetos/Android/Nutri/entregamobile/feature-receitas/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest18057006270394719148.xml:2:13-83
 	package
-		INJECTED from /home/izael/Projetos/Android/Nutri/entregamobile/feature-receitas/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest14685586637833767849.xml
+		INJECTED from /home/izael/Projetos/Android/Nutri/entregamobile/feature-receitas/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest18057006270394719148.xml
 	xmlns:android
-		ADDED from /home/izael/Projetos/Android/Nutri/entregamobile/feature-receitas/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest14685586637833767849.xml:2:23-81
+		ADDED from /home/izael/Projetos/Android/Nutri/entregamobile/feature-receitas/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest18057006270394719148.xml:2:23-81
 uses-sdk
-INJECTED from /home/izael/Projetos/Android/Nutri/entregamobile/feature-receitas/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest14685586637833767849.xml reason: use-sdk injection requested
-INJECTED from /home/izael/Projetos/Android/Nutri/entregamobile/feature-receitas/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest14685586637833767849.xml
-INJECTED from /home/izael/Projetos/Android/Nutri/entregamobile/feature-receitas/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest14685586637833767849.xml
+INJECTED from /home/izael/Projetos/Android/Nutri/entregamobile/feature-receitas/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest18057006270394719148.xml reason: use-sdk injection requested
+INJECTED from /home/izael/Projetos/Android/Nutri/entregamobile/feature-receitas/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest18057006270394719148.xml
+INJECTED from /home/izael/Projetos/Android/Nutri/entregamobile/feature-receitas/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest18057006270394719148.xml
 	android:targetSdkVersion
-		INJECTED from /home/izael/Projetos/Android/Nutri/entregamobile/feature-receitas/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest14685586637833767849.xml
+		INJECTED from /home/izael/Projetos/Android/Nutri/entregamobile/feature-receitas/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest18057006270394719148.xml
 	android:minSdkVersion
-		INJECTED from /home/izael/Projetos/Android/Nutri/entregamobile/feature-receitas/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest14685586637833767849.xml
+		INJECTED from /home/izael/Projetos/Android/Nutri/entregamobile/feature-receitas/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest18057006270394719148.xml
