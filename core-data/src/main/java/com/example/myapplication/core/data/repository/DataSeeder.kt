@@ -175,52 +175,20 @@ class DataSeeder @Inject constructor(
     }
     
     private fun createRecipeFromAPI(title: String, nutrition: RecipeNutrition?): PredefinedRecipe {
-        // Gerar dados mockados para complementar as informações da API
-        val mockData = getMockDataForRecipe(title)
-        
         return PredefinedRecipe(
-            id = "api_${System.currentTimeMillis()}",
+            id = "recipe_${System.currentTimeMillis()}",
             nome = title,
-            descricaoCurta = mockData.description,
-            imagemUrl = mockData.imageUrl,
-            ingredientes = mockData.ingredients,
-            modoPreparo = mockData.instructions,
-            tempoPreparo = mockData.cookingTime,
-            porcoes = mockData.servings,
+            descricaoCurta = "Receita importada da API",
+            imagemUrl = "",
+            ingredientes = emptyList(),
+            modoPreparo = emptyList(),
+            tempoPreparo = "30 min",
+            porcoes = 4,
             userId = "admin",
             userEmail = "admin@admin.com",
             curtidas = emptyList(),
             favoritos = emptyList()
         )
-    }
-    
-    private fun getMockDataForRecipe(title: String): MockRecipeData {
-        return when (title.lowercase()) {
-            "carrot cake" -> MockRecipeData(
-                description = "Delicioso bolo de cenoura com cobertura cremosa",
-                imageUrl = "https://images.unsplash.com/photo-1606788075761-8b8e3939b4cd?w=400&h=300&fit=crop",
-                ingredients = listOf("Cenouras", "Farinha", "Açúcar", "Ovos", "Óleo", "Fermento"),
-                instructions = listOf("Misture os ingredientes", "Asse por 40 minutos", "Deixe esfriar"),
-                cookingTime = "50 min",
-                servings = 8
-            )
-            "chocolate cake" -> MockRecipeData(
-                description = "Bolo de chocolate fofinho e saboroso",
-                imageUrl = "https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=400&h=300&fit=crop",
-                ingredients = listOf("Chocolate", "Farinha", "Açúcar", "Ovos", "Leite", "Fermento"),
-                instructions = listOf("Misture os ingredientes", "Asse por 45 minutos", "Deixe esfriar"),
-                cookingTime = "55 min",
-                servings = 8
-            )
-            else -> MockRecipeData(
-                description = "Receita deliciosa e nutritiva",
-                imageUrl = "https://images.unsplash.com/photo-1495521821757-a1efb6729352?w=400&h=300&fit=crop",
-                ingredients = listOf("Ingrediente 1", "Ingrediente 2", "Ingrediente 3"),
-                instructions = listOf("Passo 1", "Passo 2", "Passo 3"),
-                cookingTime = "30 min",
-                servings = 4
-            )
-        }
     }
     
     data class PredefinedRecipe(
@@ -236,14 +204,5 @@ class DataSeeder @Inject constructor(
         val userEmail: String,
         val curtidas: List<String>,
         val favoritos: List<String>
-    )
-    
-    data class MockRecipeData(
-        val description: String,
-        val imageUrl: String,
-        val ingredients: List<String>,
-        val instructions: List<String>,
-        val cookingTime: String,
-        val servings: Int
     )
 } 

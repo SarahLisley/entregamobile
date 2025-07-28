@@ -103,7 +103,7 @@ public final class NutritionCacheDao_Impl implements NutritionCacheDao {
 
   @Override
   public Object insertNutrition(final NutritionCacheEntity nutrition,
-      final Continuation<? super Unit> $completion) {
+      final Continuation<? super Unit> arg1) {
     return CoroutinesRoom.execute(__db, true, new Callable<Unit>() {
       @Override
       @NonNull
@@ -117,12 +117,12 @@ public final class NutritionCacheDao_Impl implements NutritionCacheDao {
           __db.endTransaction();
         }
       }
-    }, $completion);
+    }, arg1);
   }
 
   @Override
   public Object deleteNutrition(final NutritionCacheEntity nutrition,
-      final Continuation<? super Unit> $completion) {
+      final Continuation<? super Unit> arg1) {
     return CoroutinesRoom.execute(__db, true, new Callable<Unit>() {
       @Override
       @NonNull
@@ -136,11 +136,11 @@ public final class NutritionCacheDao_Impl implements NutritionCacheDao {
           __db.endTransaction();
         }
       }
-    }, $completion);
+    }, arg1);
   }
 
   @Override
-  public Object deleteOldCache(final long timestamp, final Continuation<? super Unit> $completion) {
+  public Object deleteOldCache(final long timestamp, final Continuation<? super Unit> arg1) {
     return CoroutinesRoom.execute(__db, true, new Callable<Unit>() {
       @Override
       @NonNull
@@ -161,12 +161,12 @@ public final class NutritionCacheDao_Impl implements NutritionCacheDao {
           __preparedStmtOfDeleteOldCache.release(_stmt);
         }
       }
-    }, $completion);
+    }, arg1);
   }
 
   @Override
   public Object getNutritionByTitle(final String recipeTitle,
-      final Continuation<? super NutritionCacheEntity> $completion) {
+      final Continuation<? super NutritionCacheEntity> arg1) {
     final String _sql = "SELECT * FROM nutrition_cache WHERE recipeTitle = ?";
     final RoomSQLiteQuery _statement = RoomSQLiteQuery.acquire(_sql, 1);
     int _argIndex = 1;
@@ -230,11 +230,11 @@ public final class NutritionCacheDao_Impl implements NutritionCacheDao {
           _statement.release();
         }
       }
-    }, $completion);
+    }, arg1);
   }
 
   @Override
-  public Object getCacheSize(final Continuation<? super Integer> $completion) {
+  public Object getCacheSize(final Continuation<? super Integer> arg0) {
     final String _sql = "SELECT COUNT(*) FROM nutrition_cache";
     final RoomSQLiteQuery _statement = RoomSQLiteQuery.acquire(_sql, 0);
     final CancellationSignal _cancellationSignal = DBUtil.createCancellationSignal();
@@ -262,7 +262,7 @@ public final class NutritionCacheDao_Impl implements NutritionCacheDao {
           _statement.release();
         }
       }
-    }, $completion);
+    }, arg0);
   }
 
   @NonNull

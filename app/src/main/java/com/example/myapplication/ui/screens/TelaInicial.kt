@@ -119,7 +119,7 @@ fun TelaInicial(navController: NavHostController) {
     var receitaParaDeletar by remember { mutableStateOf<Map<String, Any?>?>(null) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showTestDialog by remember { mutableStateOf(false) }
-    var testRecipeName by remember { mutableStateOf("Bolo de Chocolate") }
+    var testRecipeName by remember { mutableStateOf("") }
     // Coleta eventos únicos do ViewModel para exibir Snackbars
     LaunchedEffect(Unit) {
         receitasViewModel.eventFlow.collect { message ->
@@ -468,8 +468,6 @@ fun TelaInicial(navController: NavHostController) {
     }
 }
 
-// Remover ReceitaCard, lógica de edição/favorito local e dependências de ReceitasViewModel
-// Deixar apenas ReceitaCardFirebase e fluxo 100% Firebase
 @Composable
 fun ReceitaCardFirebase(
     receita: Map<String, Any?>,

@@ -49,6 +49,8 @@ public final class ReceitaDao_Impl implements ReceitaDao {
 
   private final SharedSQLiteStatement __preparedStmtOfDeleteReceitaById;
 
+  private final SharedSQLiteStatement __preparedStmtOfDeleteAllReceitas;
+
   public ReceitaDao_Impl(@NonNull final RoomDatabase __db) {
     this.__db = __db;
     this.__insertionAdapterOfReceitaEntity = new EntityInsertionAdapter<ReceitaEntity>(__db) {
@@ -250,6 +252,14 @@ public final class ReceitaDao_Impl implements ReceitaDao {
         return _query;
       }
     };
+    this.__preparedStmtOfDeleteAllReceitas = new SharedSQLiteStatement(__db) {
+      @Override
+      @NonNull
+      public String createQuery() {
+        final String _query = "DELETE FROM receitas";
+        return _query;
+      }
+    };
   }
 
   @Override
@@ -436,6 +446,29 @@ public final class ReceitaDao_Impl implements ReceitaDao {
           }
         } finally {
           __preparedStmtOfDeleteReceitaById.release(_stmt);
+        }
+      }
+    }, $completion);
+  }
+
+  @Override
+  public Object deleteAllReceitas(final Continuation<? super Unit> $completion) {
+    return CoroutinesRoom.execute(__db, true, new Callable<Unit>() {
+      @Override
+      @NonNull
+      public Unit call() throws Exception {
+        final SupportSQLiteStatement _stmt = __preparedStmtOfDeleteAllReceitas.acquire();
+        try {
+          __db.beginTransaction();
+          try {
+            _stmt.executeUpdateDelete();
+            __db.setTransactionSuccessful();
+            return Unit.INSTANCE;
+          } finally {
+            __db.endTransaction();
+          }
+        } finally {
+          __preparedStmtOfDeleteAllReceitas.release(_stmt);
         }
       }
     }, $completion);

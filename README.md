@@ -71,7 +71,7 @@ entregamobile/
    - Configure as credenciais no arquivo `local.properties`:
    ```properties
    SUPABASE_URL=https://zfbkkrtpnoteapbxfuos.supabase.co
-   SUPABASE_KEY=sua-chave-anonima-aqui
+   SUPABASE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpmYmtrcnRwbm90ZWFwYnhmdW9zIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MzM3ODEzMiwiZXhwIjoyMDY4OTU0MTMyfQ.PFvQ--M1e1XlmzHl0bx-C5L6bQ5uVw7YT8lyRuhqDrs
    GEMINI_API_KEY=sua-chave-gemini-aqui
    ```
 
@@ -114,14 +114,14 @@ entregamobile/
 ```json
 {
   "project_id": "appsdisciplinamobile",
-  "api_key": "AIzaSyB6iUgScQHXyYoZ_EL0kkpX2IuiunfKz0w"
+  "api_key": "AIzaSyASe0zo-r5mUrVd-ZQaOJHtRbKGy49Te4A"
 }
 ```
 
 ### Supabase
 ```kotlin
 private const val SUPABASE_URL = "https://zfbkkrtpnoteapbxfuos.supabase.co"
-private const val SUPABASE_KEY = "sua-chave-anonima"
+private const val SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpmYmtrcnRwbm90ZWFwYnhmdW9zIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MzM3ODEzMiwiZXhwIjoyMDY4OTU0MTMyfQ.PFvQ--M1e1XlmzHl0bx-C5L6bQ5uVw7YT8lyRuhqDrs"
 private const val BUCKET = "receitas"
 ```
 

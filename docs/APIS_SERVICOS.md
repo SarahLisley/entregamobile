@@ -1,4 +1,4 @@
-# 🔌 APIs e Serviços - NutriLivre Android
+                                                                                                                                                                                        # 🔌 APIs e Serviços - NutriLivre Android
 
 ## 📋 Visão Geral
 
@@ -172,7 +172,7 @@ object FirebaseSyncService {
 // SupabaseImageUploader.kt
 object SupabaseImageUploader {
     private const val SUPABASE_URL = "https://zfbkkrtpnoteapbxfuos.supabase.co"
-    private const val SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpmYmtrcnRwbm90ZWFwYnhmdW9zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMzNzgxMzIsImV4cCI6MjA2ODk1NDEzMn0.-hvEHVZY08vBKkFlK3fqIBhOs1_8HzIzGCop2OurB_U"
+    private const val SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpmYmtrcnRwbm90ZWFwYnhmdW9zIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MzM3ODEzMiwiZXhwIjoyMDY4OTU0MTMyfQ.PFvQ--M1e1XlmzHl0bx-C5L6bQ5uVw7YT8lyRuhqDrs"
     private const val BUCKET = "receitas"
 }
 ```
@@ -289,8 +289,8 @@ override suspend fun generateRecipeFromConversation(history: List<ChatMessage>):
                 nome = "Receita Especial",
                 descricaoCurta = "Uma receita deliciosa gerada pelo Chef Gemini",
                 imagemUrl = "",
-                ingredientes = listOf("Ingrediente 1", "Ingrediente 2", "Ingrediente 3"),
-                modoPreparo = listOf("Passo 1", "Passo 2", "Passo 3"),
+                ingredientes = emptyList(),
+                modoPreparo = emptyList(),
                 tempoPreparo = "30 minutos",
                 porcoes = 4,
                 userId = "gemini_generated",

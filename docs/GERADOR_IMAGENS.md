@@ -141,7 +141,7 @@ async function enhancePromptForFood(prompt: string): Promise<string> {
 // SupabaseImageUploader.kt
 object SupabaseImageUploader {
     private const val SUPABASE_URL = "https://zfbkkrtpnoteapbxfuos.supabase.co"
-    private const val SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+    private const val SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpmYmtrcnRwbm90ZWFwYnhmdW9zIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MzM3ODEzMiwiZXhwIjoyMDY4OTU0MTMyfQ.PFvQ--M1e1XlmzHl0bx-C5L6bQ5uVw7YT8lyRuhqDrs"
     private const val BUCKET = "receitas"
 }
 ```

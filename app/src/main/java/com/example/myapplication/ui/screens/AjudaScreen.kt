@@ -16,7 +16,6 @@ import com.example.myapplication.ui.components.BottomNavigationBar
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AjudaScreen(navController: NavHostController) {
-    // Remover import e uso de DadosMockados
 
     Scaffold(
         topBar = {
@@ -45,7 +44,13 @@ fun AjudaScreen(navController: NavHostController) {
             Text("Perguntas Frequentes", style = MaterialTheme.typography.headlineSmall)
             Spacer(modifier = Modifier.height(8.dp))
             LazyColumn {
-                items(listOf("Pergunta 1", "Pergunta 2", "Pergunta 3")) { pergunta ->
+                items(listOf(
+                    "Como adicionar uma nova receita?",
+                    "Como marcar uma receita como favorita?",
+                    "Como sincronizar minhas receitas?",
+                    "Como usar a busca de receitas?",
+                    "Como editar uma receita existente?"
+                )) { pergunta ->
                     Text("- $pergunta", style = MaterialTheme.typography.bodyLarge)
                     Divider()
                     Spacer(modifier = Modifier.height(4.dp))

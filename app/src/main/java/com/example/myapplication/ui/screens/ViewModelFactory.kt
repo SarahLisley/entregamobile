@@ -28,7 +28,7 @@ class ViewModelFactory(private val context: Context) : ViewModelProvider.Factory
                 )
                 val nutritionRepository = NutritionRepository(
                     context = context,
-                    nutritionService = GeminiServiceImpl("AIzaSyDiwB3lig9_fvI5wbBlILl32Ztqj41XO2I")
+                    nutritionService = GeminiServiceImpl("AIzaSyASe0zo-r5mUrVd-ZQaOJHtRbKGy49Te4A")
                 )
                 val errorHandler = ErrorHandler()
                 
@@ -53,7 +53,7 @@ class ViewModelFactory(private val context: Context) : ViewModelProvider.Factory
                     imageStorageService = com.example.myapplication.core.data.storage.ImageStorageService(),
                     errorHandler = ErrorHandler()
                 )
-                val chatService = GeminiServiceImpl("AIzaSyDiwB3lig9_fvI5wbBlILl32Ztqj41XO2I")
+                val chatService = GeminiServiceImpl("AIzaSyASe0zo-r5mUrVd-ZQaOJHtRbKGy49Te4A")
                 val auth = FirebaseAuth.getInstance()
                 val authRepository = AuthRepository(auth)
                 

@@ -36,4 +36,7 @@ interface ReceitaDao {
     
     @Query("DELETE FROM receitas WHERE id = :id")
     suspend fun deleteReceitaById(id: String)
+    
+    @Query("DELETE FROM receitas")
+    suspend fun deleteAllReceitas()
 } 

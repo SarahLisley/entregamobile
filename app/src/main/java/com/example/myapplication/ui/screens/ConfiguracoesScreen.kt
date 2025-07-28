@@ -83,7 +83,7 @@ fun ConfiguracoesScreen(
             com.example.myapplication.core.ui.error.ErrorHandler()
         )
     }
-    val nutritionRepository = remember { NutritionRepository(context, GeminiServiceImpl("AIzaSyDiwB3lig9_fvI5wbBlILl32Ztqj41XO2I")) }
+    val nutritionRepository = remember { NutritionRepository(context, GeminiServiceImpl("AIzaSyASe0zo-r5mUrVd-ZQaOJHtRbKGy49Te4A")) }
     val dataSeeder = remember { DataSeeder(context, receitasRepository, nutritionRepository) }
     var receitasFirebase by remember { mutableStateOf<List<Map<String, Any?>>>(emptyList()) }
     var showReceitaDialog by remember { mutableStateOf(false) }
@@ -195,6 +195,60 @@ fun ConfiguracoesScreen(
                         }
                         Spacer(Modifier.width(8.dp))
                         Text(if (isSeedingDatabase) "Populando..." else "Popular Banco de Dados")
+                    }
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    Button(
+                        onClick = {
+                            scope.launch {
+                                try {
+                                    viewModel.clearAllPreferences()
+                                    Toast.makeText(context, "Preferências limpas com sucesso!", Toast.LENGTH_LONG).show()
+                                } catch (e: Exception) {
+                                    Toast.makeText(context, "Erro: ${e.message}", Toast.LENGTH_LONG).show()
+                                }
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error
+                        )
+                    ) {
+                        Icon(Icons.Filled.Settings, contentDescription = "Limpar preferências")
+                        Spacer(Modifier.width(8.dp))
+                        Text("Limpar Preferências")
+                    }
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    Button(
+                        onClick = {
+                            scope.launch {
+                                try {
+                                    // Limpar dados locais
+                                    val result = receitasRepository.clearAllLocalData()
+                                    // Limpar preferências
+                                    viewModel.clearAllPreferences()
+                                    
+                                    if (result.isSuccess) {
+                                        Toast.makeText(context, "Todos os dados foram limpos com sucesso!", Toast.LENGTH_LONG).show()
+                                    } else {
+                                        Toast.makeText(context, "Erro ao limpar dados locais", Toast.LENGTH_LONG).show()
+                                    }
+                                } catch (e: Exception) {
+                                    Toast.makeText(context, "Erro: ${e.message}", Toast.LENGTH_LONG).show()
+                                }
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error
+                        )
+                    ) {
+                        Icon(Icons.Filled.Storage, contentDescription = "Limpar tudo")
+                        Spacer(Modifier.width(8.dp))
+                        Text("Limpar Todos os Dados")
                     }
                 }
             }

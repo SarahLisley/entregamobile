@@ -31,7 +31,7 @@ class SyncWorker(
                 imageStorageService,
                 errorHandler
             )
-            val nutritionRepository = NutritionRepository(context, GeminiServiceImpl("AIzaSyDiwB3lig9_fvI5wbBlILl32Ztqj41XO2I"))
+            val nutritionRepository = NutritionRepository(context, GeminiServiceImpl("AIzaSyASe0zo-r5mUrVd-ZQaOJHtRbKGy49Te4A"))
 
             // Verificar se há conectividade
             if (!connectivityObserver.isConnected()) {

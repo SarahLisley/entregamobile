@@ -21,4 +21,10 @@ class UserPreferencesRepository(private val context: Context) {
             prefs[DARK_MODE_KEY] = enabled
         }
     }
+    
+    suspend fun clearAllPreferences() {
+        context.dataStore.edit { prefs ->
+            prefs.clear()
+        }
+    }
 } 

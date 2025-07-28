@@ -114,8 +114,8 @@ class GeminiServiceImpl(private val apiKey: String) : NutritionService, ChatServ
                     {
                         "nome": "Nome da Receita",
                         "descricaoCurta": "Descrição breve e atrativa da receita",
-                        "ingredientes": ["ingrediente 1", "ingrediente 2", ...],
-                        "modoPreparo": ["passo 1", "passo 2", ...],
+                        "ingredientes": ["ingrediente 1", "ingrediente 2"],
+                        "modoPreparo": ["passo 1", "passo 2"],
                         "tempoPreparo": "30 minutos",
                         "porcoes": 4,
                         "tags": ["tag1", "tag2"]
@@ -137,7 +137,7 @@ class GeminiServiceImpl(private val apiKey: String) : NutritionService, ChatServ
                 
                 // Criar receita sem imagem inicialmente
                 ReceitaEntity(
-                    id = System.currentTimeMillis().toString(),
+                    id = "recipe_${System.currentTimeMillis()}",
                     nome = recipeData.nome,
                     descricaoCurta = recipeData.descricaoCurta,
                     imagemUrl = "", // Será preenchida pelo generateImageForRecipe
@@ -158,12 +158,12 @@ class GeminiServiceImpl(private val apiKey: String) : NutritionService, ChatServ
                 val finalUserEmail = userEmail ?: "chef@gemini.com"
                 
                 ReceitaEntity(
-                    id = System.currentTimeMillis().toString(),
+                    id = "recipe_${System.currentTimeMillis()}",
                     nome = "Receita Especial",
                     descricaoCurta = "Uma receita deliciosa gerada pelo Chef Gemini",
                     imagemUrl = "",
-                    ingredientes = listOf("Ingrediente 1", "Ingrediente 2", "Ingrediente 3"),
-                    modoPreparo = listOf("Passo 1", "Passo 2", "Passo 3"),
+                    ingredientes = emptyList(),
+                    modoPreparo = emptyList(),
                     tempoPreparo = "30 minutos",
                     porcoes = 4,
                     userId = finalUserId,

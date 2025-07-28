@@ -39,4 +39,7 @@ interface IReceitasRepository {
     // Métodos de verificação de permissões
     fun canEditReceita(receita: ReceitaEntity, currentUserId: String?): Boolean
     fun canDeleteReceita(receita: ReceitaEntity, currentUserId: String?): Boolean
+    
+    // Método para limpar todos os dados locais
+    suspend fun clearAllLocalData(): Result<Unit>
 } 

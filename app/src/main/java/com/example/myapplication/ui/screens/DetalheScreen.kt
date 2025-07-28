@@ -95,6 +95,20 @@ fun DetalheScreen(
     val isLoading = uiState is ReceitasUiState.Loading
     val isError = uiState is ReceitasUiState.Error
     
+    // Debug: Log para verificar o receitaId e as receitas disponíveis
+    LaunchedEffect(receitaId, uiState) {
+        println("DEBUG: DetalheScreen - receitaId recebido: '$receitaId'")
+        if (uiState is ReceitasUiState.Success) {
+            val receitas = (uiState as ReceitasUiState.Success).receitas
+            println("DEBUG: DetalheScreen - Total de receitas disponíveis: ${receitas.size}")
+            println("DEBUG: DetalheScreen - IDs das receitas disponíveis:")
+            receitas.forEach { receita ->
+                println("DEBUG: - ID: '${receita.id}', Nome: '${receita.nome}'")
+            }
+            println("DEBUG: DetalheScreen - Receita encontrada: ${receita != null}")
+        }
+    }
+    
     // Verificar se o usuário atual é o autor da receita
     val currentUser = FirebaseAuth.getInstance().currentUser
     val isOwner = remember(receita, currentUser) {

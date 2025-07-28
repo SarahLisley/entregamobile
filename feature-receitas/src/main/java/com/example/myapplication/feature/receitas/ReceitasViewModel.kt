@@ -102,7 +102,7 @@ class ReceitasViewModel(
         viewModelScope.launch {
             _uiState.value = ReceitasUiState.Loading
             try {
-                val id = System.currentTimeMillis().toString()
+                val id = "recipe_${System.currentTimeMillis()}"
                 receitasRepository.salvarReceita(
                     context = context,
                     id = id,

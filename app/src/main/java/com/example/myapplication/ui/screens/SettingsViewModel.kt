@@ -22,6 +22,13 @@ class SettingsViewModel(
             repository.setDarkMode(enabled)
         }
     }
+    
+    // Método para limpar todas as preferências
+    fun clearAllPreferences() {
+        viewModelScope.launch {
+            repository.clearAllPreferences()
+        }
+    }
 }
 
 // Factory para injeção manual (sem Hilt)

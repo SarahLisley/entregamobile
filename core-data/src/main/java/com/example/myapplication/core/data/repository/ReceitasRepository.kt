@@ -202,7 +202,7 @@ class ReceitasRepository @Inject constructor(
             for (child in snapshot.children) {
                 val receitaData = child.getValue(object : GenericTypeIndicator<Map<String, Any>>() {})
                 if (receitaData != null) {
-                    val receitaEntity = receitaData.toReceitaEntity()
+                    val receitaEntity = createReceitaFromFirebaseData(child.key ?: "", receitaData)
                     receitasFirebase.add(receitaEntity)
                 }
             }
@@ -228,8 +228,9 @@ class ReceitasRepository @Inject constructor(
                 for (child in snapshot.children) {
                     val receitaData = child.getValue(object : GenericTypeIndicator<Map<String, Any>>() {})
                     if (receitaData != null) {
+                        Log.d("ReceitasRepository", "Chave do Firebase: ${child.key}")
                         Log.d("ReceitasRepository", "Dados da receita do Firebase: $receitaData")
-                        val receitaEntity = receitaData.toReceitaEntity()
+                        val receitaEntity = createReceitaFromFirebaseData(child.key ?: "", receitaData)
                         receitasFirebase.add(receitaEntity)
                     }
                 }
@@ -374,6 +375,17 @@ class ReceitasRepository @Inject constructor(
             Result.failure(Exception(userError.message))
         }
     }
+    
+    override suspend fun clearAllLocalData(): Result<Unit> {
+        return try {
+            receitaDao.deleteAllReceitas()
+            Log.d("ReceitasRepository", "Todos os dados locais foram limpos")
+            Result.success(Unit)
+        } catch (e: Exception) {
+            val userError = errorHandler.handleError(e)
+            Result.failure(Exception(userError.message))
+        }
+    }
 
     override suspend fun updateImage(context: Context, novaImagemUri: Uri, imagemUrlAntiga: String?, id: String): String? {
         return try {
@@ -451,32 +463,5 @@ private fun ReceitaEntity.toMap(): Map<String, Any?> {
         "userEmail" to userEmail,
         "curtidas" to curtidas,
         "favoritos" to favoritos
-    )
-}
-
-private fun Map<String, Any>.toReceitaEntity(): ReceitaEntity {
-    val imagemUrl = this["imagemUrl"] as? String ?: ""
-    val nome = this["nome"] as? String ?: ""
-    
-    Log.d("ReceitasRepository", "Convertendo dados do Firebase para ReceitaEntity")
-    Log.d("ReceitasRepository", "Nome: $nome")
-    Log.d("ReceitasRepository", "URL da imagem: '$imagemUrl'")
-    Log.d("ReceitasRepository", "Dados completos: $this")
-    
-    return ReceitaEntity(
-        id = this["id"] as? String ?: "",
-        nome = nome,
-        descricaoCurta = this["descricaoCurta"] as? String ?: "",
-        imagemUrl = imagemUrl,
-        ingredientes = (this["ingredientes"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList(),
-        modoPreparo = (this["modoPreparo"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList(),
-        tempoPreparo = this["tempoPreparo"] as? String ?: "",
-        porcoes = (this["porcoes"] as? Number)?.toInt() ?: 1,
-        userId = this["userId"] as? String ?: "",
-        userEmail = this["userEmail"] as? String,
-        curtidas = (this["curtidas"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList(),
-        favoritos = (this["favoritos"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList(),
-        isSynced = true,
-        lastModified = System.currentTimeMillis()
     )
 } 
