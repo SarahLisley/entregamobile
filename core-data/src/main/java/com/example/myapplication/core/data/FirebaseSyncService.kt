@@ -73,6 +73,12 @@ object FirebaseSyncService {
     }
 
     suspend fun deleteReceita(receitaId: String): Boolean = withContext(Dispatchers.IO) {
+        // VALIDAÇÃO CRÍTICA: Impedir a exclusão se o ID for nulo ou vazio
+        if (receitaId.isBlank()) {
+            Log.e("FirebaseSync", "TENTATIVA DE DELEÇÃO COM ID VAZIO/NULO. OPERAÇÃO ABORTADA.")
+            return@withContext false
+        }
+
         try {
             Log.d("FirebaseSync", "Deletando receita do Firebase: $receitaId")
             receitasRef.child(receitaId).removeValue().await()

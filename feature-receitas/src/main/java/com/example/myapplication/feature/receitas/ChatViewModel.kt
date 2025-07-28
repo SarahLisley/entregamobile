@@ -1,5 +1,6 @@
 package com.example.myapplication.feature.receitas
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.myapplication.core.data.database.entity.ReceitaEntity
@@ -12,6 +13,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.CancellationException
 // import javax.inject.Inject
 
 class ChatViewModel(
@@ -85,28 +88,73 @@ class ChatViewModel(
         if (!_canGenerateRecipe.value) return
         
         viewModelScope.launch {
+            Log.d("ChatViewModel", "🚀 INICIANDO GERAÇÃO DE RECEITA DO CHAT")
             _isLoading.value = true
             _recipeGenerationStatus.value = RecipeGenerationStatus.Generating
             _imageGenerationStatus.value = ImageGenerationStatus.Idle
             
             try {
+                // Verificar se a coroutine ainda está ativa
+                if (!isActive) {
+                    Log.w("ChatViewModel", "⚠️ Coroutine foi cancelada antes de iniciar")
+                    return@launch
+                }
+                
                 // Gerar receita da conversa com informações do usuário logado
                 val currentUserId = authRepository.currentUserId
                 val currentUserEmail = authRepository.currentUserEmail
+                Log.d("ChatViewModel", "👤 Usuário atual: $currentUserId")
+                Log.d("ChatViewModel", "📧 Email do usuário: $currentUserEmail")
+                Log.d("ChatViewModel", "💬 Mensagens no chat: ${_messages.value.size}")
+                
+                // Verificar se a coroutine ainda está ativa antes de gerar receita
+                if (!isActive) {
+                    Log.w("ChatViewModel", "⚠️ Coroutine foi cancelada antes de gerar receita")
+                    return@launch
+                }
+                
                 val recipe = chatService.generateRecipeFromConversation(
                     _messages.value,
                     currentUserId,
                     currentUserEmail
                 )
                 
+                Log.d("ChatViewModel", "📝 Receita gerada: ${recipe.nome}")
+                Log.d("ChatViewModel", "🆔 ID da receita: ${recipe.id}")
+                Log.d("ChatViewModel", "📋 Ingredientes: ${recipe.ingredientes.size}")
+                Log.d("ChatViewModel", "👨‍🍳 Modo de preparo: ${recipe.modoPreparo.size}")
+                
+                // Verificar se a coroutine ainda está ativa antes de gerar imagem
+                if (!isActive) {
+                    Log.w("ChatViewModel", "⚠️ Coroutine foi cancelada antes de gerar imagem")
+                    return@launch
+                }
+                
                 // Atualizar status para geração de imagem
                 _imageGenerationStatus.value = ImageGenerationStatus.Generating
                 
                 // Gerar imagem para a receita usando a nova API
+                Log.d("ChatViewModel", "🎨 Iniciando geração de imagem para receita: ${recipe.nome}")
                 val recipeWithImage = chatService.generateImageForRecipe(recipe)
+                Log.d("ChatViewModel", "✅ Imagem gerada com sucesso para: ${recipeWithImage.nome}")
+                Log.d("ChatViewModel", "🖼️ URL da imagem: ${recipeWithImage.imagemUrl}")
+                
+                // Verificar se a coroutine ainda está ativa antes de salvar
+                if (!isActive) {
+                    Log.w("ChatViewModel", "⚠️ Coroutine foi cancelada antes de salvar receita")
+                    return@launch
+                }
                 
                 // Salvar receita com imagem no repositório
+                Log.d("ChatViewModel", "💾 Salvando receita no repositório...")
                 receitasRepository.addReceita(recipeWithImage)
+                Log.d("ChatViewModel", "✅ Receita salva com sucesso!")
+                
+                // Verificar se a coroutine ainda está ativa antes de finalizar
+                if (!isActive) {
+                    Log.w("ChatViewModel", "⚠️ Coroutine foi cancelada antes de finalizar")
+                    return@launch
+                }
                 
                 // Armazenar a receita gerada
                 _generatedRecipe.value = recipeWithImage
@@ -122,17 +170,34 @@ class ChatViewModel(
                 _recipeGenerationStatus.value = RecipeGenerationStatus.Success(recipeWithImage)
                 _imageGenerationStatus.value = ImageGenerationStatus.Success
                 
+                Log.d("ChatViewModel", "🎉 GERAÇÃO DE RECEITA CONCLUÍDA COM SUCESSO!")
+                
             } catch (e: Exception) {
-                addMessage(
-                    ChatMessage(
-                        content = "Desculpe, não consegui gerar a receita. Tente continuar nossa conversa e tente novamente.",
-                        isUser = false
-                    )
-                )
-                _recipeGenerationStatus.value = RecipeGenerationStatus.Error(e.message ?: "Erro desconhecido")
-                _imageGenerationStatus.value = ImageGenerationStatus.Error(e.message ?: "Erro ao gerar imagem")
+                when (e) {
+                    is CancellationException -> {
+                        Log.w("ChatViewModel", "⚠️ Geração de receita foi cancelada pelo usuário")
+                        Log.w("ChatViewModel", "⚠️ Motivo: ${e.message}")
+                    }
+                    else -> {
+                        Log.e("ChatViewModel", "💥 ERRO na geração de receita")
+                        Log.e("ChatViewModel", "💥 Tipo da exceção: ${e.javaClass.simpleName}")
+                        Log.e("ChatViewModel", "💥 Mensagem: ${e.message}")
+                        Log.e("ChatViewModel", "💥 Stack trace:")
+                        e.printStackTrace()
+                        
+                        addMessage(
+                            ChatMessage(
+                                content = "Desculpe, não consegui gerar a receita. Tente continuar nossa conversa e tente novamente.",
+                                isUser = false
+                            )
+                        )
+                        _recipeGenerationStatus.value = RecipeGenerationStatus.Error(e.message ?: "Erro desconhecido")
+                        _imageGenerationStatus.value = ImageGenerationStatus.Error(e.message ?: "Erro ao gerar imagem")
+                    }
+                }
             } finally {
                 _isLoading.value = false
+                Log.d("ChatViewModel", "🏁 Finalizando geração de receita")
             }
         }
     }

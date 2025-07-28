@@ -57,15 +57,19 @@ fun DetalheScreen(
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // Compartilha o ViewModel com a TelaInicial
-    val navBackStackEntry = navController.getBackStackEntry(AppScreens.TelaInicialScreen.route)
+    // Obtenha o ViewModel com escopo independente para esta tela
     val receitasViewModel: ReceitasViewModel = viewModel(
-        viewModelStoreOwner = navBackStackEntry,
         factory = ViewModelFactory(context)
     )
 
-    val uiState by receitasViewModel.uiState.collectAsState()
+    // Observe o estado da receita selecionada
+    val selectedRecipeUiState by receitasViewModel.selectedRecipeState.collectAsState()
     val nutritionState by receitasViewModel.nutritionState.collectAsState()
+
+    // Carregue a receita específica quando a tela for criada
+    LaunchedEffect(receitaId) {
+        receitasViewModel.loadRecipeById(receitaId)
+    }
 
     // Estados de edição
     val startInEditMode = backStackEntry.arguments?.getBoolean("startInEditMode") ?: false
@@ -91,20 +95,16 @@ fun DetalheScreen(
         if (uri != null) editImagemUri = uri
     }
 
-    val receita = (uiState as? ReceitasUiState.Success)?.receitas?.find { it.id == receitaId }
-    val isLoading = uiState is ReceitasUiState.Loading
-    val isError = uiState is ReceitasUiState.Error
+    val receita = (selectedRecipeUiState as? ReceitasUiState.Success)?.receitas?.firstOrNull()
+    val isLoading = selectedRecipeUiState is ReceitasUiState.Loading
+    val isError = selectedRecipeUiState is ReceitasUiState.Error
     
-    // Debug: Log para verificar o receitaId e as receitas disponíveis
-    LaunchedEffect(receitaId, uiState) {
+    // Debug: Log para verificar o receitaId e a receita carregada
+    LaunchedEffect(receitaId, selectedRecipeUiState) {
         println("DEBUG: DetalheScreen - receitaId recebido: '$receitaId'")
-        if (uiState is ReceitasUiState.Success) {
-            val receitas = (uiState as ReceitasUiState.Success).receitas
-            println("DEBUG: DetalheScreen - Total de receitas disponíveis: ${receitas.size}")
-            println("DEBUG: DetalheScreen - IDs das receitas disponíveis:")
-            receitas.forEach { receita ->
-                println("DEBUG: - ID: '${receita.id}', Nome: '${receita.nome}'")
-            }
+        if (selectedRecipeUiState is ReceitasUiState.Success) {
+            val receitas = (selectedRecipeUiState as ReceitasUiState.Success).receitas
+            println("DEBUG: DetalheScreen - Receita carregada: ${receitas.firstOrNull()?.nome}")
             println("DEBUG: DetalheScreen - Receita encontrada: ${receita != null}")
         }
     }
@@ -267,7 +267,7 @@ fun DetalheScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { paddingValues ->
         when {
-            isLoading && receita == null -> {
+            isLoading -> {
                 Box(
                     modifier = Modifier.fillMaxSize(), 
                     contentAlignment = Alignment.Center
@@ -276,7 +276,7 @@ fun DetalheScreen(
                 }
             }
             isError -> {
-                val msg = (uiState as ReceitasUiState.Error).error.message
+                val msg = (selectedRecipeUiState as ReceitasUiState.Error).error.message
                 Box(
                     modifier = Modifier.fillMaxSize().padding(paddingValues), 
                     contentAlignment = Alignment.Center

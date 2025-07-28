@@ -87,6 +87,8 @@ import com.example.myapplication.feature.receitas.ReceitasViewModel
 import com.example.myapplication.ui.screens.ViewModelFactory
 
 import com.example.myapplication.feature.receitas.ReceitasUiState
+import java.net.URL
+import java.net.HttpURLConnection
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
@@ -445,9 +447,47 @@ fun TelaInicial(navController: NavHostController) {
                     onClick = {
                         scope.launch {
                             try {
-                                ImageGenerationService().generateRecipeImage(testRecipeName)
+                                Log.d("TelaInicial", "🧪 INICIANDO TESTE DE GERAÇÃO DE IMAGEM")
+                                Log.d("TelaInicial", "📝 Receita de teste: $testRecipeName")
+                                
+                                val imageService = ImageGenerationService()
+                                
+                                // Teste de conectividade primeiro
+                                Log.d("TelaInicial", "🌐 Testando conectividade...")
+                                val isConnected = imageService.testWorkerConnectivity()
+                                Log.d("TelaInicial", "📊 Resultado do teste de conectividade: $isConnected")
+                                
+                                if (isConnected) {
+                                    Log.d("TelaInicial", "🎨 Gerando imagem...")
+                                    val imageUrl = imageService.generateRecipeImage(testRecipeName)
+                                    Log.d("TelaInicial", "✅ Imagem gerada com sucesso!")
+                                    Log.d("TelaInicial", "🖼️ URL da imagem: $imageUrl")
+                                } else {
+                                    Log.e("TelaInicial", "❌ Worker não está acessível")
+                                }
+                                
+                                // Teste simples adicional
+                                Log.d("TelaInicial", "🧪 Teste simples do Worker...")
+                                val simpleTestResult = imageService.simpleTest()
+                                Log.d("TelaInicial", "📊 Resultado do teste simples: $simpleTestResult")
+                                
+                                // Teste de conectividade básica
+                                Log.d("TelaInicial", "🌐 Testando conectividade básica...")
+                                try {
+                                    val connectivityTest = URL("https://www.google.com").openConnection() as HttpURLConnection
+                                    connectivityTest.requestMethod = "HEAD"
+                                    connectivityTest.connectTimeout = 5000
+                                    val connectivityCode = connectivityTest.responseCode
+                                    Log.d("TelaInicial", "✅ Conectividade OK: $connectivityCode")
+                                } catch (e: Exception) {
+                                    Log.e("TelaInicial", "❌ Problema de conectividade: ${e.message}")
+                                }
                             } catch (e: Exception) {
-                                Log.e("TelaInicial", "Erro ao gerar imagem: ${e.message}")
+                                Log.e("TelaInicial", "💥 ERRO no teste de geração de imagem")
+                                Log.e("TelaInicial", "💥 Tipo da exceção: ${e.javaClass.simpleName}")
+                                Log.e("TelaInicial", "💥 Mensagem: ${e.message}")
+                                Log.e("TelaInicial", "💥 Stack trace:")
+                                e.printStackTrace()
                             }
                         }
                         showTestDialog = false

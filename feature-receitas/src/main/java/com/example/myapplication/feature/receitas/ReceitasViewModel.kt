@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.myapplication.core.ui.error.ErrorHandler
 import com.example.myapplication.core.ui.error.UserFriendlyError
+import com.example.myapplication.core.ui.error.ErrorType
 import com.example.myapplication.core.data.repository.AuthRepository
 import com.example.myapplication.core.data.repository.NutritionRepository
 import com.example.myapplication.core.data.database.entity.ReceitaEntity
@@ -36,6 +37,10 @@ class ReceitasViewModel(
     
     private val _uiState = MutableStateFlow<ReceitasUiState>(ReceitasUiState.Loading)
     val uiState: StateFlow<ReceitasUiState> = _uiState
+
+    // Estado para a receita selecionada (independente da lista)
+    private val _selectedRecipeState = MutableStateFlow<ReceitasUiState>(ReceitasUiState.Loading)
+    val selectedRecipeState: StateFlow<ReceitasUiState> = _selectedRecipeState
 
     // Channel para eventos únicos (ex: Snackbars)
     private val _eventChannel = Channel<String>()
@@ -364,4 +369,27 @@ class ReceitasViewModel(
     
     // Função para obter o email do usuário atual
     fun getCurrentUserEmail(): String? = authRepository.currentUserEmail
+    
+    // Função para carregar uma receita específica por ID
+    fun loadRecipeById(id: String?) {
+        if (id == null) {
+            _selectedRecipeState.value = ReceitasUiState.Error(UserFriendlyError("Erro", "ID da receita inválido.", ErrorType.UNKNOWN))
+            return
+        }
+
+        viewModelScope.launch {
+            _selectedRecipeState.value = ReceitasUiState.Loading
+            try {
+                val receita = receitasRepository.getReceitaById(id)
+                if (receita != null) {
+                    _selectedRecipeState.value = ReceitasUiState.Success(listOf(receita))
+                } else {
+                    _selectedRecipeState.value = ReceitasUiState.Error(UserFriendlyError("Não Encontrado", "A receita não foi encontrada.", ErrorType.NOT_FOUND))
+                }
+            } catch (e: Exception) {
+                val userError = errorHandler.handleError(e)
+                _selectedRecipeState.value = ReceitasUiState.Error(userError)
+            }
+        }
+    }
 } 

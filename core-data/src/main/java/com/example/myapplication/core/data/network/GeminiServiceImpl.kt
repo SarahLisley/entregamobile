@@ -182,17 +182,30 @@ class GeminiServiceImpl(private val apiKey: String) : NutritionService, ChatServ
             try {
                 Log.d("GeminiServiceImpl", "=== INICIANDO GERAÇÃO DE IMAGEM PARA RECEITA ===")
                 Log.d("GeminiServiceImpl", "Receita: ${recipe.nome}")
+                Log.d("GeminiServiceImpl", "ID da receita: ${recipe.id}")
                 
                 // Gerar imagem usando o ImageGenerationService
+                Log.d("GeminiServiceImpl", "🔄 Chamando ImageGenerationService...")
                 val imageUrl = imageGenerationService.generateRecipeImage(recipe.nome)
+                Log.d("GeminiServiceImpl", "✅ Imagem gerada com sucesso!")
+                Log.d("GeminiServiceImpl", "🖼️ URL da imagem: $imageUrl")
                 
                 // Retornar receita com a imagem gerada
-                recipe.copy(imagemUrl = imageUrl)
+                val recipeWithImage = recipe.copy(imagemUrl = imageUrl)
+                Log.d("GeminiServiceImpl", "📝 Receita atualizada com imagem")
+                return@withContext recipeWithImage
                 
             } catch (e: Exception) {
-                Log.e("GeminiServiceImpl", "Erro ao gerar imagem para receita: ${e.message}")
+                Log.e("GeminiServiceImpl", "💥 ERRO na geração de imagem para receita")
+                Log.e("GeminiServiceImpl", "💥 Tipo da exceção: ${e.javaClass.simpleName}")
+                Log.e("GeminiServiceImpl", "💥 Mensagem: ${e.message}")
+                Log.e("GeminiServiceImpl", "💥 Stack trace:")
+                e.printStackTrace()
+                
                 // Retornar receita com imagem fallback
-                recipe.copy(imagemUrl = getFallbackImageUrl(recipe.nome))
+                val fallbackUrl = getFallbackImageUrl(recipe.nome)
+                Log.d("GeminiServiceImpl", "⚠️ Usando imagem de fallback: $fallbackUrl")
+                return@withContext recipe.copy(imagemUrl = fallbackUrl)
             }
         }
     }
