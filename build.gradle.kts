@@ -1,4 +1,4 @@
-// Top-level build file where you can add configuration options common to all sub-projects/modules.
+                                                                                                                                                                                                                                                                    // Top-level build file where you can add configuration options common to all sub-projects/modules.
 plugins {
     // Use os alias do seu libs.versions.toml para definir os plugins para o projeto inteiro.
     // 'apply false' torna o plugin disponível para os submódulos, mas não o aplica ao projeto raiz.

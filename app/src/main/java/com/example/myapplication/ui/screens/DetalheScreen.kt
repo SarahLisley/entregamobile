@@ -44,6 +44,7 @@ import com.example.myapplication.ui.theme.OrangeSecondary
 import com.google.firebase.auth.FirebaseAuth
 import com.example.myapplication.feature.receitas.ReceitasViewModel
 import com.example.myapplication.ui.screens.ViewModelFactory
+
 import com.example.myapplication.feature.receitas.ReceitasUiState
 
 @OptIn(ExperimentalMaterial3Api::class)

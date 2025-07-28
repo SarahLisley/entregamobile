@@ -85,6 +85,7 @@ import androidx.compose.material.icons.filled.Sync
 import com.example.myapplication.core.data.network.ImageGenerationService
 import com.example.myapplication.feature.receitas.ReceitasViewModel
 import com.example.myapplication.ui.screens.ViewModelFactory
+
 import com.example.myapplication.feature.receitas.ReceitasUiState
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
@@ -375,9 +376,7 @@ fun TelaInicial(navController: NavHostController) {
                                     ingredientes = novosIngredientes.split('\n').filter { it.isNotBlank() },
                                     modoPreparo = novoModoPreparo.split('\n').filter { it.isNotBlank() },
                                     tempoPreparo = novoTempo,
-                                    porcoes = novasPorcoes.toIntOrNull() ?: 1,
-                                    userId = usuario?.uid ?: "anon",
-                                    userEmail = usuario?.email ?: ""
+                                    porcoes = novasPorcoes.toIntOrNull() ?: 1
                                 )
                                 novoNome = ""
                                 novaDescricao = ""

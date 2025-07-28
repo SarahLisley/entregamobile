@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.myapplication.core.ui.error.ErrorHandler
 import com.example.myapplication.core.ui.error.UserFriendlyError
+import com.example.myapplication.core.data.repository.AuthRepository
 import com.example.myapplication.core.data.repository.NutritionRepository
 import com.example.myapplication.core.data.database.entity.ReceitaEntity
 import com.example.myapplication.core.data.model.RecipeNutrition
@@ -30,8 +31,7 @@ class ReceitasViewModel(
     private val receitasRepository: IReceitasRepository,
     private val nutritionRepository: NutritionRepository,
     private val errorHandler: ErrorHandler,
-    private val currentUserId: String? = null,
-    private val currentUserEmail: String? = null
+    private val authRepository: AuthRepository
 ) : ViewModel() {
     
     private val _uiState = MutableStateFlow<ReceitasUiState>(ReceitasUiState.Loading)
@@ -89,10 +89,16 @@ class ReceitasViewModel(
         ingredientes: List<String>,
         modoPreparo: List<String>,
         tempoPreparo: String,
-        porcoes: Int,
-        userId: String,
-        userEmail: String?
+        porcoes: Int
     ) {
+        val currentUserId = authRepository.currentUserId
+        val currentUserEmail = authRepository.currentUserEmail
+        
+        if (currentUserId == null) {
+            // Usuário não está logado
+            return
+        }
+        
         viewModelScope.launch {
             _uiState.value = ReceitasUiState.Loading
             try {
@@ -107,8 +113,8 @@ class ReceitasViewModel(
                     modoPreparo = modoPreparo,
                     tempoPreparo = tempoPreparo,
                     porcoes = porcoes,
-                    userId = userId,
-                    userEmail = userEmail,
+                    userId = currentUserId,
+                    userEmail = currentUserEmail,
                     imagemUrl = null
                 ).onSuccess {
                     _eventChannel.send("Receita adicionada com sucesso!")
@@ -135,6 +141,7 @@ class ReceitasViewModel(
                 }
                 
                 // Verificar permissão: apenas o proprietário pode deletar
+                val currentUserId = authRepository.currentUserId
                 if (currentUserId != null && receita.userId != currentUserId) {
                     _eventChannel.send("Você não tem permissão para deletar esta receita!")
                     return@launch
@@ -210,6 +217,7 @@ class ReceitasViewModel(
                 }
                 
                 // Verificar permissão: apenas o proprietário pode editar
+                val currentUserId = authRepository.currentUserId
                 if (currentUserId != null && receitaAtual.userId != currentUserId) {
                     _eventChannel.send("Você não tem permissão para editar esta receita!")
                     return@launch
@@ -343,17 +351,17 @@ class ReceitasViewModel(
 
     // Função para verificar se o usuário atual pode editar uma receita
     fun canEditReceita(receita: ReceitaEntity): Boolean {
-        return receitasRepository.canEditReceita(receita, currentUserId)
+        return receitasRepository.canEditReceita(receita, authRepository.currentUserId)
     }
     
     // Função para verificar se o usuário atual pode deletar uma receita
     fun canDeleteReceita(receita: ReceitaEntity): Boolean {
-        return receitasRepository.canDeleteReceita(receita, currentUserId)
+        return receitasRepository.canDeleteReceita(receita, authRepository.currentUserId)
     }
     
     // Função para obter o ID do usuário atual
-    fun getCurrentUserId(): String? = currentUserId
+    fun getCurrentUserId(): String? = authRepository.currentUserId
     
     // Função para obter o email do usuário atual
-    fun getCurrentUserEmail(): String? = currentUserEmail
+    fun getCurrentUserEmail(): String? = authRepository.currentUserEmail
 } 

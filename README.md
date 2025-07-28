@@ -66,9 +66,14 @@ entregamobile/
    cd nutrilivre-android
    ```
 
-2. **Configure as APIs**
+2. **Configure as credenciais**
    - Adicione `google-services.json` na pasta `app/`
-   - Configure as credenciais do Supabase em `core-data/src/main/java/com/example/myapplication/core/data/SupabaseImageUploader.kt`
+   - Configure as credenciais no arquivo `local.properties`:
+   ```properties
+   SUPABASE_URL=https://zfbkkrtpnoteapbxfuos.supabase.co
+   SUPABASE_KEY=sua-chave-anonima-aqui
+   GEMINI_API_KEY=sua-chave-gemini-aqui
+   ```
 
 3. **Execute o projeto**
    ```bash
@@ -172,6 +177,12 @@ URL da imagem: https://zfbkkrtpnoteapbxfuos.supabase.co/storage/v1/object/public
 ## 📄 Licença
 
 Este projeto está sob a licença MIT. Veja o arquivo `LICENSE` para mais detalhes.
+
+## 📚 Documentação Adicional
+
+Para informações mais detalhadas sobre APIs e serviços, consulte:
+- [APIs e Serviços](docs/APIS_SERVICOS.md) - Documentação completa das APIs
+- [Gerador de Imagens](docs/GERADOR_IMAGENS.md) - Detalhes sobre geração de imagens com IA
 
 ## 📞 Suporte
 

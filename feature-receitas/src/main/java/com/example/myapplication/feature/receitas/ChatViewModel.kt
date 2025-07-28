@@ -5,17 +5,19 @@ import androidx.lifecycle.viewModelScope
 import com.example.myapplication.core.data.database.entity.ReceitaEntity
 import com.example.myapplication.core.data.model.ChatMessage
 import com.example.myapplication.core.data.network.ChatService
+import com.example.myapplication.core.data.repository.AuthRepository
 import com.example.myapplication.core.data.repository.ReceitasRepository
+// import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+// import javax.inject.Inject
 
 class ChatViewModel(
     private val chatService: ChatService,
     private val receitasRepository: ReceitasRepository,
-    private val currentUserId: String? = null,
-    private val currentUserEmail: String? = null
+    private val authRepository: AuthRepository
 ) : ViewModel() {
     
     private val _messages = MutableStateFlow<List<ChatMessage>>(emptyList())
@@ -89,6 +91,8 @@ class ChatViewModel(
             
             try {
                 // Gerar receita da conversa com informações do usuário logado
+                val currentUserId = authRepository.currentUserId
+                val currentUserEmail = authRepository.currentUserEmail
                 val recipe = chatService.generateRecipeFromConversation(
                     _messages.value,
                     currentUserId,

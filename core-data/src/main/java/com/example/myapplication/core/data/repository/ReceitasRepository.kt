@@ -235,9 +235,13 @@ class ReceitasRepository @Inject constructor(
                 }
 
                 Log.d("ReceitasRepository", "Total de receitas convertidas: ${receitasFirebase.size}")
-                // Atualizar Room em background
+                
+                // Chamar o callback com os dados atualizados
+                callback(receitasFirebase)
+                
+                // Atualizar Room em background usando o escopo fornecido pelo ViewModel
                 if (receitasFirebase.isNotEmpty()) {
-                    // Executar em uma coroutine separada
+                    // Executar em uma coroutine separada para operações de banco de dados
                     kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
                         try {
                             receitaDao.insertReceitas(receitasFirebase)

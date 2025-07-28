@@ -77,34 +77,7 @@ fun AppNavigation() {
         }
         
         composable(AppScreens.ChatScreen.route) {
-            val context = LocalContext.current
-            val database = remember { AppDatabase.getDatabase(context) }
-            val receitaDao = remember { database.receitaDao() }
-            val connectivityObserver = remember { ConnectivityObserver(context) }
-            val receitasRepository = remember { 
-                ReceitasRepository(
-                    receitaDao,
-                    database.nutritionDataDao(),
-                    connectivityObserver,
-                    ImageStorageService(),
-                    ErrorHandler()
-                ) 
-            }
-            
-            // Obter informações do usuário logado
-            val authViewModel: AuthViewModel = viewModel()
-            val usuario = authViewModel.usuarioAtual()
-            val currentUserId = usuario?.uid
-            val currentUserEmail = usuario?.email
-            
-            val chatViewModel = remember {
-                ChatViewModel(
-                    GeminiServiceImpl("AIzaSyDiwB3lig9_fvI5wbBlILl32Ztqj41XO2I"), 
-                    receitasRepository,
-                    currentUserId,
-                    currentUserEmail
-                )
-            }
+            val chatViewModel: ChatViewModel = viewModel()
             
             ChatScreen(
                 chatViewModel = chatViewModel,

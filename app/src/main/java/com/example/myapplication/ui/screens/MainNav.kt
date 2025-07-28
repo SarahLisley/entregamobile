@@ -27,6 +27,7 @@ import com.example.myapplication.core.data.network.ConnectivityObserver
 import com.example.myapplication.core.data.repository.ReceitasRepository
 import com.example.myapplication.core.data.storage.ImageStorageService
 import com.example.myapplication.core.ui.error.ErrorHandler
+import com.example.myapplication.ui.screens.ViewModelFactory
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -111,33 +112,9 @@ fun MainNav() {
         }
         composable(AppScreens.ChatScreen.route) {
             val context = LocalContext.current
-            val database = remember { AppDatabase.getDatabase(context) }
-            val receitaDao = remember { database.receitaDao() }
-            val connectivityObserver = remember { ConnectivityObserver(context) }
-            val receitasRepository = remember { 
-                ReceitasRepository(
-                    receitaDao,
-                    database.nutritionDataDao(),
-                    connectivityObserver,
-                    ImageStorageService(),
-                    ErrorHandler()
-                ) 
-            }
-            
-            // Obter informações do usuário logado
-            val authViewModel: AuthViewModel = viewModel()
-            val usuario = authViewModel.usuarioAtual()
-            val currentUserId = usuario?.uid
-            val currentUserEmail = usuario?.email
-            
-            val chatViewModel = remember {
-                com.example.myapplication.feature.receitas.ChatViewModel(
-                    com.example.myapplication.data.GeminiChatService(),
-                    receitasRepository,
-                    currentUserId,
-                    currentUserEmail
-                )
-            }
+            val chatViewModel: com.example.myapplication.feature.receitas.ChatViewModel = viewModel(
+                factory = ViewModelFactory(context)
+            )
             
             Scaffold(
                 topBar = {
