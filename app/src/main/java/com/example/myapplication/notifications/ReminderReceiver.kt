@@ -19,8 +19,12 @@ class ReminderReceiver : BroadcastReceiver() {
 
     @SuppressLint("MissingPermission")
     override fun onReceive(context: Context, intent: Intent) {
+        println("DEBUG: ReminderReceiver.onReceive chamado")
         val itemId = intent.getIntExtra(EXTRA_ITEM_ID, 0)
         val title  = intent.getStringExtra(EXTRA_TITLE) ?: "Lembrete"
+        
+        println("DEBUG: ItemId: $itemId")
+        println("DEBUG: Title: $title")
 
         // Constrói a notificação
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
@@ -29,8 +33,15 @@ class ReminderReceiver : BroadcastReceiver() {
             .setContentText("Hora de verificar o item #$itemId")
             .setPriority(NotificationCompat.PRIORITY_HIGH)    // prioridade alta
             .setAutoCancel(true)                              // fecha ao clicar
+        
         // Dispara
-        NotificationManagerCompat.from(context)
-            .notify(itemId, builder.build())
+        try {
+            NotificationManagerCompat.from(context)
+                .notify(itemId, builder.build())
+            println("DEBUG: Notificação enviada com sucesso")
+        } catch (e: Exception) {
+            println("DEBUG: Erro ao enviar notificação: ${e.message}")
+            e.printStackTrace()
+        }
     }
 }

@@ -167,7 +167,10 @@ fun MainNav() {
                 },
                 bottomBar = { BottomNavigationBar(navController) }
             ) { paddingValues ->
-                com.example.myapplication.feature.receitas.ProfileScreen(onBack = { navController.popBackStack() })
+                com.example.myapplication.feature.receitas.ProfileScreen(
+                    onBack = { navController.popBackStack() },
+                    onNavigateToSettings = { navController.navigate(AppScreens.ConfiguracoesScreen.route) }
+                )
             }
         }
         composable(

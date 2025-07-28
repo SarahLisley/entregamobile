@@ -19,18 +19,16 @@ import com.google.firebase.database.FirebaseDatabase
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onNavigateToSettings: () -> Unit = {}
 ) {
     val auth = FirebaseAuth.getInstance()
     val currentUser = auth.currentUser
     val database = FirebaseDatabase.getInstance()
-    // Removidos imports de SettingsViewModel e SettingsViewModelFactory
     
     var selectedPreferences by remember { mutableStateOf(setOf<String>()) }
     var isLoading by remember { mutableStateOf(false) }
     var showSuccessMessage by remember { mutableStateOf(false) }
-    
-    // Se quiser mostrar o modo escuro, pode passar como parâmetro ou buscar de outro jeito
     
     // Preferências disponíveis
     val availablePreferences = listOf(
@@ -138,7 +136,7 @@ fun ProfileScreen(
                 }
             }
             
-            // Seção 2: Configurações Gerais (apenas visual)
+            // Seção 2: Configurações Gerais
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -168,57 +166,34 @@ fun ProfileScreen(
                         
                         Spacer(modifier = Modifier.height(16.dp))
                         
-                        // Modo escuro (apenas visual)
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                        // Botão para acessar configurações
+                        Button(
+                            onClick = onNavigateToSettings,
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary
+                            )
                         ) {
                             Icon(
-                                imageVector = Icons.Default.DarkMode,
+                                imageVector = Icons.Default.Settings,
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                tint = MaterialTheme.colorScheme.onPrimary
                             )
-                            Spacer(modifier = Modifier.width(12.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "Modo Escuro",
-                                style = MaterialTheme.typography.bodyLarge,
-                                modifier = Modifier.weight(1f)
-                            )
-                            Text(
-                                text = "Configurado nas Configurações",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                text = "Acessar Configurações",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onPrimary
                             )
                         }
                         
-                        Divider(modifier = Modifier.padding(vertical = 8.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
                         
-                        // Notificações (apenas visual)
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Notifications,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                            )
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Text(
-                                text = "Notificações",
-                                style = MaterialTheme.typography.bodyLarge,
-                                modifier = Modifier.weight(1f)
-                            )
-                            Text(
-                                text = "Configurado nas Configurações",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                            )
-                        }
+                        Text(
+                            text = "Configure o modo escuro, notificações e outras opções do app.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                        )
                     }
                 }
             }

@@ -16,12 +16,14 @@ object NotificationHelper {
    * Verifica se o app tem permissão para agendar alarmas exatos
    */
   fun hasExactAlarmPermission(context: Context): Boolean {
-    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+    val hasPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
       val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
       alarmManager.canScheduleExactAlarms()
     } else {
       true // Para versões anteriores ao Android 12, não é necessária permissão especial
     }
+    println("DEBUG: Permissão de alarme exato: $hasPermission")
+    return hasPermission
   }
 
   /**
@@ -39,9 +41,14 @@ object NotificationHelper {
     title: String,
     timeInMillis: Long
   ): Boolean {
+    println("DEBUG: Tentando agendar lembrete para: $title")
+    println("DEBUG: ItemId: $itemId")
+    println("DEBUG: Tempo: $timeInMillis")
+    
     return try {
       // Verifica se tem permissão para alarmes exatos
       if (!hasExactAlarmPermission(context)) {
+        println("DEBUG: Sem permissão para alarmes exatos")
         return false
       }
 
@@ -74,13 +81,16 @@ object NotificationHelper {
         )
       }
       
+      println("DEBUG: Lembrete agendado com sucesso!")
       true
     } catch (e: SecurityException) {
       // Log do erro para debug
+      println("DEBUG: Erro de segurança ao agendar lembrete: ${e.message}")
       e.printStackTrace()
       false
     } catch (e: Exception) {
       // Log de outros erros
+      println("DEBUG: Erro ao agendar lembrete: ${e.message}")
       e.printStackTrace()
       false
     }

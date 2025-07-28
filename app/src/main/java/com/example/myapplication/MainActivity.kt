@@ -76,7 +76,7 @@ class MainActivity : ComponentActivity() {
         seedDatabaseIfNeeded()
         
         setContent {
-            val darkModeEnabled by userPreferencesRepository.isDarkModeEnabled.collectAsState(initial = isNightMode())
+            val darkModeEnabled by userPreferencesRepository.isDarkModeEnabled.collectAsState(initial = false)
             Theme(darkTheme = darkModeEnabled) {
                 MainNav()
             }
