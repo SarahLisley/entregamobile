@@ -3,6 +3,7 @@ package com.example.myapplication.feature.receitas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -10,6 +11,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -37,6 +39,7 @@ fun ChatScreen(
     val canGenerateRecipe by chatViewModel.canGenerateRecipe.collectAsState()
     val recipeGenerationStatus by chatViewModel.recipeGenerationStatus.collectAsState()
     val imageGenerationStatus by chatViewModel.imageGenerationStatus.collectAsState()
+    val suggestions by chatViewModel.suggestions.collectAsState()
     val listState = rememberLazyListState()
     val focusManager = LocalFocusManager.current
     val coroutineScope = rememberCoroutineScope()
@@ -55,47 +58,164 @@ fun ChatScreen(
         chatViewModel.resetRecipeGenerationStatus()
     }
     
-    Column(
+    Box(
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surface)
+            .background(
+                MaterialTheme.colorScheme.surface
+            )
     ) {
-        
-        // Messages
-        LazyColumn(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-            state = listState,
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+        Column(
+            modifier = Modifier.fillMaxSize()
         ) {
-            items(messages) { message ->
-                ChatMessageItem(message = message)
+            // HEADER - Área de sugestões
+            if (suggestions.isNotEmpty()) {
+                ChatSuggestions(
+                    suggestions = suggestions,
+                    onSuggestionClick = { suggestion ->
+                        chatViewModel.sendMessage(suggestion)
+                    }
+                )
             }
             
-            if (isLoading) {
-                item {
-                    LoadingMessage()
+            // MESSAGES - Área principal de mensagens
+            LazyColumn(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                state = listState,
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                contentPadding = PaddingValues(vertical = 16.dp)
+            ) {
+                items(messages) { message ->
+                    ChatMessageItem(message = message)
+                }
+                
+                if (isLoading) {
+                    item {
+                        LoadingMessage()
+                    }
+                }
+            }
+            
+            // BOTTOM SECTION - Área de controles e input
+            ChatBottomSection(
+                messageText = messageText,
+                onMessageTextChange = { messageText = it },
+                onSendMessage = {
+                    if (messageText.isNotBlank()) {
+                        chatViewModel.sendMessage(messageText)
+                        messageText = ""
+                        focusManager.clearFocus()
+                    }
+                },
+                canGenerateRecipe = canGenerateRecipe,
+                recipeGenerationStatus = recipeGenerationStatus,
+                imageGenerationStatus = imageGenerationStatus,
+                onGenerateRecipe = { chatViewModel.generateRecipeFromChat() },
+                onCancelGeneration = { chatViewModel.cancelRecipeGeneration() },
+                isLoading = isLoading
+            )
+        }
+        
+        // OVERLAY - Status de geração e sucessos/erros
+        ChatOverlay(
+            recipeGenerationStatus = recipeGenerationStatus,
+            imageGenerationStatus = imageGenerationStatus,
+            onGenerateRecipe = onGenerateRecipe
+        )
+    }
+}
+
+@Composable
+fun ChatSuggestions(
+    suggestions: List<String>,
+    onSuggestionClick: (String) -> Unit
+) {
+    if (suggestions.isNotEmpty()) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.1f)
+            ),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(12.dp)
+            ) {
+                Text(
+                    text = "💡 Sugestões",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Medium
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    items(suggestions) { suggestion ->
+                        AssistChip(
+                            onClick = { onSuggestionClick(suggestion) },
+                            label = { 
+                                Text(
+                                    suggestion, 
+                                    maxLines = 1,
+                                    style = MaterialTheme.typography.labelSmall
+                                ) 
+                            },
+                            shape = RoundedCornerShape(16.dp),
+                            colors = AssistChipDefaults.assistChipColors(
+                                containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                labelColor = MaterialTheme.colorScheme.primary
+                            )
+                        )
+                    }
                 }
             }
         }
-        
-        // Generate Recipe Button
-        if (canGenerateRecipe) {
+    }
+}
+
+@Composable
+fun ChatBottomSection(
+    messageText: String,
+    onMessageTextChange: (String) -> Unit,
+    onSendMessage: () -> Unit,
+    canGenerateRecipe: Boolean,
+    recipeGenerationStatus: RecipeGenerationStatus,
+    imageGenerationStatus: ImageGenerationStatus,
+    onGenerateRecipe: () -> Unit,
+    onCancelGeneration: () -> Unit,
+    isLoading: Boolean
+) {
+    val focusManager = LocalFocusManager.current
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                MaterialTheme.colorScheme.surface,
+                shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
+            )
+            .padding(16.dp)
+    ) {
+        // Generate Recipe Card
+        if (canGenerateRecipe && recipeGenerationStatus !is RecipeGenerationStatus.Success) {
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
+                    .padding(bottom = 16.dp),
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer
-                )
+                ),
+                shape = RoundedCornerShape(16.dp)
             ) {
                 Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
+                    modifier = Modifier.padding(16.dp)
                 ) {
+                    // Header com título e botão
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
@@ -103,69 +223,185 @@ fun ChatScreen(
                         Icon(
                             imageVector = Icons.Default.Restaurant,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onPrimaryContainer
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.size(20.dp)
                         )
-                        Spacer(modifier = Modifier.width(12.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = "Gerar receita personalizada",
-                            style = MaterialTheme.typography.bodyLarge,
+                            style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onPrimaryContainer,
                             fontWeight = FontWeight.Medium
                         )
                         Spacer(modifier = Modifier.weight(1f))
-                        Button(
-                            onClick = {
-                                chatViewModel.generateRecipeFromChat()
-                                onGenerateRecipe()
-                            },
-                            enabled = !isLoading && recipeGenerationStatus !is RecipeGenerationStatus.Generating
-                        ) {
-                            if (recipeGenerationStatus is RecipeGenerationStatus.Generating) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(16.dp),
-                                    strokeWidth = 2.dp,
-                                    color = MaterialTheme.colorScheme.onPrimary
+                        
+                        // Botão compacto
+                        if (recipeGenerationStatus is RecipeGenerationStatus.Generating) {
+                            Button(
+                                onClick = onCancelGeneration,
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.error
+                                ),
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.height(36.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(14.dp)
                                 )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text("Gerando...")
-                            } else {
-                                Text("Gerar")
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    "Cancelar",
+                                    style = MaterialTheme.typography.labelMedium
+                                )
+                            }
+                        } else {
+                            Button(
+                                onClick = onGenerateRecipe,
+                                enabled = !isLoading && recipeGenerationStatus !is RecipeGenerationStatus.Generating,
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.height(36.dp)
+                            ) {
+                                if (recipeGenerationStatus is RecipeGenerationStatus.Generating) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(14.dp),
+                                        strokeWidth = 2.dp,
+                                        color = MaterialTheme.colorScheme.onPrimary
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        "Gerando...",
+                                        style = MaterialTheme.typography.labelMedium
+                                    )
+                                } else {
+                                    Icon(
+                                        imageVector = Icons.Default.AutoAwesome,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        "Gerar",
+                                        style = MaterialTheme.typography.labelMedium
+                                    )
+                                }
                             }
                         }
                     }
                     
-                    // Status da geração de imagem
+                    // Status da geração de imagem (mais compacto)
                     if (imageGenerationStatus is ImageGenerationStatus.Generating) {
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
                         Row(
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
                         ) {
                             CircularProgressIndicator(
-                                modifier = Modifier.size(16.dp),
-                                strokeWidth = 2.dp,
+                                modifier = Modifier.size(12.dp),
+                                strokeWidth = 1.5.dp,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
                             Text(
                                 text = "Gerando imagem única com IA...",
-                                style = MaterialTheme.typography.bodySmall,
+                                style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer
                             )
                         }
+                    }
+                    
+                    // Informações sobre o processo (mais compacto)
+                    if (recipeGenerationStatus is RecipeGenerationStatus.Generating) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = "Este processo pode levar alguns minutos. Você pode cancelar a qualquer momento.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                        )
                     }
                 }
             }
         }
         
-        // Success Message
-        if (recipeGenerationStatus is RecipeGenerationStatus.Success) {
+        // Input Section
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                OutlinedTextField(
+                    value = messageText,
+                    onValueChange = onMessageTextChange,
+                    modifier = Modifier.weight(1f),
+                    placeholder = {
+                        Text("Digite sua mensagem...")
+                    },
+                    maxLines = 3,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                    keyboardActions = KeyboardActions(
+                        onSend = { onSendMessage() }
+                    ),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                    ),
+                    shape = RoundedCornerShape(12.dp),
+                    enabled = !isLoading && recipeGenerationStatus !is RecipeGenerationStatus.Generating,
+                    textStyle = MaterialTheme.typography.bodyMedium
+                )
+                
+                Spacer(modifier = Modifier.width(8.dp))
+                
+                IconButton(
+                    onClick = onSendMessage,
+                    enabled = messageText.isNotBlank() && !isLoading && recipeGenerationStatus !is RecipeGenerationStatus.Generating,
+                    modifier = Modifier
+                        .size(44.dp)
+                        .background(
+                            MaterialTheme.colorScheme.primary,
+                            shape = RoundedCornerShape(10.dp)
+                        )
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.Send,
+                        contentDescription = "Enviar",
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ChatOverlay(
+    recipeGenerationStatus: RecipeGenerationStatus,
+    imageGenerationStatus: ImageGenerationStatus,
+    onGenerateRecipe: () -> Unit
+) {
+    when (recipeGenerationStatus) {
+        is RecipeGenerationStatus.Success -> {
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
+                    .padding(16.dp),
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.tertiaryContainer
-                )
+                ),
+                shape = RoundedCornerShape(16.dp)
             ) {
                 Column(
                     modifier = Modifier
@@ -183,7 +419,7 @@ fun ChatScreen(
                         )
                         Spacer(modifier = Modifier.width(12.dp))
                         Text(
-                            text = "Receita '${(recipeGenerationStatus as RecipeGenerationStatus.Success).recipe.nome}' salva com sucesso!",
+                            text = "Receita '${recipeGenerationStatus.recipe.nome}' salva com sucesso!",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onTertiaryContainer,
                             fontWeight = FontWeight.Medium
@@ -209,19 +445,47 @@ fun ChatScreen(
                             )
                         }
                     }
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Sua receita foi salva no seu feed de receitas. Clique no botão abaixo para visualizá-la!",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.8f)
+                    )
+                    
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        Button(
+                            onClick = onGenerateRecipe,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary
+                            ),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Restaurant,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Ver Minhas Receitas")
+                        }
+                    }
                 }
             }
         }
-        
-        // Error Message
-        if (recipeGenerationStatus is RecipeGenerationStatus.Error) {
+        is RecipeGenerationStatus.Error -> {
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
+                    .padding(16.dp),
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.errorContainer
-                )
+                ),
+                shape = RoundedCornerShape(16.dp)
             ) {
                 Column(
                     modifier = Modifier
@@ -239,7 +503,7 @@ fun ChatScreen(
                         )
                         Spacer(modifier = Modifier.width(12.dp))
                         Text(
-                            text = "Erro ao gerar receita: ${(recipeGenerationStatus as RecipeGenerationStatus.Error).message}",
+                            text = "Erro ao gerar receita: ${recipeGenerationStatus.message}",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onErrorContainer,
                             fontWeight = FontWeight.Medium
@@ -259,80 +523,27 @@ fun ChatScreen(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "Erro na geração de imagem: ${(imageGenerationStatus as ImageGenerationStatus.Error).message}",
+                                text = "Erro na geração de imagem: ${imageGenerationStatus.message}",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onErrorContainer
                             )
                         }
                     }
+                    
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Button(
+                        onClick = {
+                            // Reset e tentar novamente
+                        },
+                        modifier = Modifier.align(Alignment.End),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text("Tentar Novamente")
+                    }
                 }
             }
         }
-        
-        // Input Section
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                OutlinedTextField(
-                    value = messageText,
-                    onValueChange = { messageText = it },
-                    modifier = Modifier.weight(1f),
-                    placeholder = {
-                        Text("Digite sua mensagem...")
-                    },
-                    maxLines = 3,
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
-                    keyboardActions = KeyboardActions(
-                        onSend = {
-                            if (messageText.isNotBlank()) {
-                                chatViewModel.sendMessage(messageText)
-                                messageText = ""
-                                focusManager.clearFocus()
-                            }
-                        }
-                    ),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outline
-                    ),
-                    enabled = !isLoading && recipeGenerationStatus !is RecipeGenerationStatus.Generating
-                )
-                
-                Spacer(modifier = Modifier.width(8.dp))
-                
-                IconButton(
-                    onClick = {
-                        if (messageText.isNotBlank()) {
-                            chatViewModel.sendMessage(messageText)
-                            messageText = ""
-                            focusManager.clearFocus()
-                        }
-                    },
-                    enabled = messageText.isNotBlank() && !isLoading && recipeGenerationStatus !is RecipeGenerationStatus.Generating
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Send,
-                        contentDescription = "Enviar",
-                        tint = if (messageText.isNotBlank() && !isLoading && recipeGenerationStatus !is RecipeGenerationStatus.Generating) 
-                            MaterialTheme.colorScheme.primary 
-                        else 
-                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-                    )
-                }
-            }
-        }
+        else -> { /* Não mostrar overlay */ }
     }
 }
 
@@ -357,7 +568,8 @@ fun ChatMessageItem(message: ChatMessage) {
                 topEnd = 16.dp,
                 bottomStart = if (isUser) 16.dp else 4.dp,
                 bottomEnd = if (isUser) 4.dp else 16.dp
-            )
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
         ) {
             Column(
                 modifier = Modifier.padding(12.dp)
@@ -404,7 +616,8 @@ fun LoadingMessage() {
                 topEnd = 16.dp,
                 bottomStart = 4.dp,
                 bottomEnd = 16.dp
-            )
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
         ) {
             Row(
                 modifier = Modifier.padding(12.dp),

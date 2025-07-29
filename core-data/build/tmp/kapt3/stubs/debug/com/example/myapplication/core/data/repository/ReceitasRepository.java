@@ -60,6 +60,20 @@ public final class ReceitasRepository implements com.example.myapplication.core.
     }
     
     @java.lang.Override()
+    public boolean canEditReceita(@org.jetbrains.annotations.NotNull()
+    com.example.myapplication.core.data.database.entity.ReceitaEntity receita, @org.jetbrains.annotations.Nullable()
+    java.lang.String currentUserId) {
+        return false;
+    }
+    
+    @java.lang.Override()
+    public boolean canDeleteReceita(@org.jetbrains.annotations.NotNull()
+    com.example.myapplication.core.data.database.entity.ReceitaEntity receita, @org.jetbrains.annotations.Nullable()
+    java.lang.String currentUserId) {
+        return false;
+    }
+    
+    @java.lang.Override()
     @org.jetbrains.annotations.Nullable()
     public java.lang.Object getReceitaById(@org.jetbrains.annotations.NotNull()
     java.lang.String id, @org.jetbrains.annotations.NotNull()
@@ -76,19 +90,5 @@ public final class ReceitasRepository implements com.example.myapplication.core.
     java.lang.String id, @org.jetbrains.annotations.NotNull()
     kotlin.coroutines.Continuation<? super java.lang.String> $completion) {
         return null;
-    }
-    
-    @java.lang.Override()
-    public boolean canEditReceita(@org.jetbrains.annotations.NotNull()
-    com.example.myapplication.core.data.database.entity.ReceitaEntity receita, @org.jetbrains.annotations.Nullable()
-    java.lang.String currentUserId) {
-        return false;
-    }
-    
-    @java.lang.Override()
-    public boolean canDeleteReceita(@org.jetbrains.annotations.NotNull()
-    com.example.myapplication.core.data.database.entity.ReceitaEntity receita, @org.jetbrains.annotations.Nullable()
-    java.lang.String currentUserId) {
-        return false;
     }
 }

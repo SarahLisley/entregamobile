@@ -786,7 +786,10 @@ fun ActionsSection(
                 IconButton(
                     onClick = {
                         currentUser?.uid?.let { userId ->
+                            android.util.Log.d("DetalheScreen", "Curtindo receita: ${receita.id}, userId: $userId")
                             receitasViewModel.curtirReceita(receita.id, userId, receita.curtidas)
+                        } ?: run {
+                            android.util.Log.w("DetalheScreen", "Usuário não logado, não é possível curtir")
                         }
                     }
                 ) {
@@ -808,7 +811,10 @@ fun ActionsSection(
                 IconButton(
                     onClick = {
                         currentUser?.uid?.let { userId ->
+                            android.util.Log.d("DetalheScreen", "Favoritando receita: ${receita.id}, userId: $userId")
                             receitasViewModel.favoritarReceita(receita.id, userId, receita.favoritos)
+                        } ?: run {
+                            android.util.Log.w("DetalheScreen", "Usuário não logado, não é possível favoritar")
                         }
                     }
                 ) {
@@ -824,6 +830,21 @@ fun ActionsSection(
                         )
                     }
                 }
+            }
+            
+            // Debug info
+            if (currentUser != null) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Debug: User ID: ${currentUser.uid}, Receita ID: ${receita.id}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                )
+                Text(
+                    text = "Curtidas: ${receita.curtidas}, Favoritos: ${receita.favoritos}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                )
             }
         }
     }

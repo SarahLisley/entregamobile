@@ -34,7 +34,9 @@ import kotlinx.coroutines.launch
 fun BuscaScreen(navController: NavHostController) {
     val context = LocalContext.current
     var searchText by remember { mutableStateOf("") }
-    val navBackStackEntry = navController.getBackStackEntry(AppScreens.TelaInicialScreen.route)
+    val navBackStackEntry = remember(navController.currentBackStackEntry?.destination?.route) {
+        navController.getBackStackEntry(AppScreens.TelaInicialScreen.route)
+    }
     val receitasViewModel: ReceitasViewModel = viewModel(
         viewModelStoreOwner = navBackStackEntry,
         factory = ViewModelFactory(context)

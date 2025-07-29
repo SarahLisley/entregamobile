@@ -12,7 +12,7 @@ import android.util.Log
 class GeminiServiceImpl(private val apiKey: String) : NutritionService, ChatService {
 
     private val generativeModel = GenerativeModel(
-        modelName = "gemini-1.5-flash",
+        modelName = "gemini-2.5-flash-lite",
         apiKey = apiKey
     )
 
@@ -62,26 +62,46 @@ class GeminiServiceImpl(private val apiKey: String) : NutritionService, ChatServ
     override suspend fun continueChat(history: List<ChatMessage>, newMessage: String): String {
         return withContext(Dispatchers.IO) {
             try {
-                val conversationHistory = history.joinToString("\n") { 
-                    "${if (it.isUser) "Usuário" else "Chef Gemini"}: ${it.content}" 
+                val conversationHistory = history.joinToString("\n") {
+                    "${if (it.isUser) "Usuário" else "Chef Gemini"}: ${it.content}"
                 }
-                
+
                 val prompt = """
-                    Você é o Chef Gemini, um chef especializado em nutrição e culinária. 
-                    Seja entusiasta, criativo e prestativo. Seu objetivo é inspirar os usuários 
-                    e ajudá-los a criar pratos incríveis. Quando um usuário pedir para gerar 
-                    uma receita, confirme que você pode criar uma receita maravilhosa baseada na conversa.
+                    Você é o Chef Gemini, um chef especializado em nutrição e culinária brasileira e internacional.
                     
-                    Histórico da conversa:
+                    PERSONALIDADE E ESTILO:
+                    - Seja entusiasta, criativo, prestativo e acolhedor
+                    - Use linguagem acessível mas técnica quando necessário
+                    - Demonstre conhecimento profundo em culinária, nutrição e técnicas culinárias
+                    - Seja paciente e didático, explicando conceitos quando relevante
+                    - Use emojis ocasionalmente para tornar a conversa mais amigável
+                    
+                    CAPACIDADES:
+                    - Criar receitas personalizadas baseadas em preferências, restrições e ingredientes disponíveis
+                    - Fornecer dicas de culinária, técnicas e truques
+                    - Explicar informações nutricionais e benefícios dos ingredientes
+                    - Sugerir substituições e adaptações de receitas
+                    - Recomendar combinações de sabores e harmonização
+                    - Ajudar com planejamento de refeições e organização da cozinha
+                    
+                    DIRETRIZES DE RESPOSTA:
+                    - Sempre seja útil e construtivo
+                    - Se o usuário pedir uma receita, confirme que pode criar uma receita maravilhosa baseada na conversa
+                    - Quando apropriado, faça perguntas para entender melhor as preferências do usuário
+                    - Sugira variações e opções quando relevante
+                    - Se não souber algo, seja honesto e sugira alternativas
+                    - Mantenha o foco em culinária, nutrição e gastronomia
+                    
+                    CONTEXTO DA CONVERSA:
                     $conversationHistory
                     
-                    Usuário: $newMessage
+                    USUÁRIO: $newMessage
                     
-                    Chef Gemini:
+                    CHEF GEMINI:
                 """.trimIndent()
 
                 val response = generativeModel.generateContent(prompt)
-                response.text ?: "Desculpe, não consegui processar sua mensagem."
+                response.text ?: "Desculpe, não consegui processar sua mensagem. Tente novamente."
             } catch (e: Exception) {
                 "Desculpe, ocorreu um erro ao processar sua mensagem. Tente novamente."
             }
@@ -217,8 +237,19 @@ class GeminiServiceImpl(private val apiKey: String) : NutritionService, ChatServ
      */
     private fun getFallbackImageUrl(recipeName: String): String {
         val sanitizedName = recipeName.replace(" ", "").replace("[^a-zA-Z0-9]".toRegex(), "")
-        // Usar Unsplash para imagens de comida de alta qualidade
-        return "https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=400&h=300&fit=crop"
+        
+        // Lista de fallbacks em ordem de preferência
+        val fallbacks = listOf(
+            // Unsplash - imagens de comida de alta qualidade
+            "https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=400&h=300&fit=crop",
+            // Picsum com seed baseado no nome da receita
+            "https://picsum.photos/seed/${sanitizedName}/400/300",
+            // Imagem genérica de comida
+            "https://images.unsplash.com/photo-1504674900242-87b0b7b3b8c8?w=400&h=300&fit=crop"
+        )
+        
+        // Usar o primeiro fallback disponível
+        return fallbacks.first()
     }
 
     /**

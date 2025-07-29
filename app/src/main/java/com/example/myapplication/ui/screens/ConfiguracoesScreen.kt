@@ -58,6 +58,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import com.example.myapplication.ui.theme.GreenPrimary
 import com.example.myapplication.ui.theme.OrangeSecondary
+import com.example.myapplication.BuildConfig
 
 @Composable
 fun ConfiguracoesScreen(
@@ -83,7 +84,7 @@ fun ConfiguracoesScreen(
             com.example.myapplication.core.ui.error.ErrorHandler()
         )
     }
-    val nutritionRepository = remember { NutritionRepository(context, GeminiServiceImpl("AIzaSyASe0zo-r5mUrVd-ZQaOJHtRbKGy49Te4A")) }
+            val nutritionRepository = remember { NutritionRepository(context, GeminiServiceImpl(BuildConfig.GEMINI_API_KEY)) }
     val dataSeeder = remember { DataSeeder(context, receitasRepository, nutritionRepository) }
     var receitasFirebase by remember { mutableStateOf<List<Map<String, Any?>>>(emptyList()) }
     var showReceitaDialog by remember { mutableStateOf(false) }

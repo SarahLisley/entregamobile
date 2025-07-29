@@ -6,6 +6,7 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Chat
+import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -22,7 +23,7 @@ fun BottomNavigationBar(navController: NavHostController) {
     val items = listOf(
         BottomNavItem("Receitas", Icons.Filled.Home, AppScreens.TelaInicialScreen.route),
         BottomNavItem("Buscar", Icons.Filled.Search, AppScreens.BuscaScreen.route),
-        BottomNavItem("Chat", Icons.Filled.Chat, AppScreens.ChatScreen.route),
+        BottomNavItem("Chat", Icons.AutoMirrored.Filled.Chat, AppScreens.ChatScreen.route),
         BottomNavItem("Favoritos", Icons.Filled.Favorite, AppScreens.FavoritosScreen.route),
         BottomNavItem("Perfil", Icons.Filled.Person, AppScreens.ProfileScreen.route)
     )

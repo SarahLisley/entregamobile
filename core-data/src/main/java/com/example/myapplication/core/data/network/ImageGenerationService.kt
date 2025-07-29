@@ -4,6 +4,7 @@ import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.withTimeout
 import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URLEncoder
@@ -19,6 +20,11 @@ class ImageGenerationService {
         private const val WORKER_URL = "https://text-to-image-template.izaelnunesred.workers.dev"
         private const val TAG = "ImageGenerationService"
         
+        // Timeouts otimizados
+        private const val CONNECT_TIMEOUT = 10000L // 10s para conexão
+        private const val READ_TIMEOUT = 30000L // 30s para leitura
+        private const val TEST_TIMEOUT = 10000L // 10s para testes
+        
         // Teste da URL do worker
         fun testWorkerUrl() {
             Log.d(TAG, "🔗 Testando URL do Worker: $WORKER_URL")
@@ -32,7 +38,7 @@ class ImageGenerationService {
      */
     suspend fun generateRecipeImage(recipeName: String): String {
         return withContext(Dispatchers.IO) {
-            generateRecipeImageWithRetry(recipeName, maxRetries = 3)
+            generateRecipeImageWithRetry(recipeName, maxRetries = 2)
         }
     }
 
@@ -44,7 +50,9 @@ class ImageGenerationService {
                 Log.d(TAG, "=== TENTATIVA ${attempt + 1}/$maxRetries ===")
                 Log.d(TAG, "Receita: $recipeName")
                 
-                val result = generateRecipeImageInternal(recipeName)
+                val result = withTimeout(60000L) { // 60 segundos de timeout total
+                    generateRecipeImageInternal(recipeName)
+                }
                 Log.d(TAG, "✅ Geração bem-sucedida na tentativa ${attempt + 1}")
                 return result
                 
@@ -52,10 +60,25 @@ class ImageGenerationService {
                 lastException = e
                 Log.w(TAG, "❌ Tentativa ${attempt + 1} falhou: ${e.message}")
                 
-                if (attempt < maxRetries - 1) {
-                    val delay = 2000L * (attempt + 1) // Backoff exponencial: 2s, 4s, 6s
-                    Log.d(TAG, "⏳ Aguardando ${delay}ms antes da próxima tentativa...")
-                    kotlinx.coroutines.delay(delay)
+                when (e) {
+                    is CancellationException -> {
+                        Log.w(TAG, "⚠️ Geração cancelada pelo usuário")
+                        throw e // Re-throw para propagar o cancelamento
+                    }
+                    is kotlinx.coroutines.TimeoutCancellationException -> {
+                        Log.e(TAG, "⏰ Timeout na tentativa ${attempt + 1}")
+                        if (attempt == maxRetries - 1) {
+                            Log.e(TAG, "💥 Todas as tentativas falharam por timeout")
+                            return getFallbackImageUrl(recipeName)
+                        }
+                    }
+                    else -> {
+                        if (attempt < maxRetries - 1) {
+                            val delay = 1000L * (attempt + 1) // Backoff linear: 1s, 2s
+                            Log.d(TAG, "⏳ Aguardando ${delay}ms antes da próxima tentativa...")
+                            kotlinx.coroutines.delay(delay)
+                        }
+                    }
                 }
             }
         }
@@ -70,8 +93,8 @@ class ImageGenerationService {
             Log.d(TAG, "=== INICIANDO GERAÇÃO DE IMAGEM ===")
             Log.d(TAG, "Receita: $recipeName")
                 
-            // Teste de conectividade básico
-            Log.d(TAG, "🌐 Testando conectividade...")
+            // Teste de conectividade básico mais rápido
+            Log.d(TAG, "🌐 Testando conectividade básica...")
             try {
                 val testConnection = URL("https://www.google.com").openConnection() as HttpURLConnection
                 testConnection.requestMethod = "HEAD"
@@ -81,36 +104,21 @@ class ImageGenerationService {
                 Log.d(TAG, "✅ Conectividade OK (Google response: $testResponseCode)")
             } catch (e: Exception) {
                 Log.e(TAG, "❌ Problema de conectividade: ${e.message}")
+                // Continuar mesmo com problema de conectividade básica
             }
                 
-            // Teste específico do Worker
+            // Teste específico do Worker com timeout reduzido
             Log.d(TAG, "🔗 Testando conectividade com Worker...")
-            try {
-                val workerTestConnection = URL("$WORKER_URL?prompt=test").openConnection() as HttpURLConnection
-                workerTestConnection.requestMethod = "HEAD"
-                workerTestConnection.connectTimeout = 10000
-                workerTestConnection.readTimeout = 10000
-                val workerTestResponseCode = workerTestConnection.responseCode
-                Log.d(TAG, "✅ Worker acessível (response: $workerTestResponseCode)")
-            } catch (e: Exception) {
-                Log.e(TAG, "❌ Worker não acessível: ${e.message}")
-            }
-                
-            val encodedPrompt = URLEncoder.encode(recipeName, "UTF-8")
-            val url = "$WORKER_URL?prompt=$encodedPrompt"
-            Log.d(TAG, "URL do Worker: $url")
-                
-            // Teste da URL
-            testWorkerUrl()
-
-            // Teste de conectividade com o worker
-            Log.d(TAG, "🧪 Testando conectividade com o worker...")
             val isWorkerAccessible = testWorkerConnectivity()
             if (!isWorkerAccessible) {
                 Log.e(TAG, "❌ Worker não está acessível, usando fallback")
                 return getFallbackImageUrl(recipeName)
             }
             Log.d(TAG, "✅ Worker está acessível, prosseguindo...")
+
+            val encodedPrompt = URLEncoder.encode(recipeName, "UTF-8")
+            val url = "$WORKER_URL?prompt=$encodedPrompt"
+            Log.d(TAG, "URL do Worker: $url")
 
             Log.d(TAG, "🔗 Fazendo conexão HTTP...")
             val startTime = System.currentTimeMillis()
@@ -120,8 +128,8 @@ class ImageGenerationService {
             connection.setRequestProperty("User-Agent", "NutriLivre-Android/1.0")
             connection.setRequestProperty("Cache-Control", "no-cache")
             connection.setRequestProperty("Pragma", "no-cache")
-            connection.connectTimeout = 120000 // 120s para garantir tempo suficiente
-            connection.readTimeout = 120000
+            connection.connectTimeout = CONNECT_TIMEOUT.toInt()
+            connection.readTimeout = READ_TIMEOUT.toInt()
             connection.useCaches = false
             connection.defaultUseCaches = false
             connection.instanceFollowRedirects = true
@@ -177,6 +185,11 @@ class ImageGenerationService {
                     Log.w(TAG, "⚠️ Motivo: ${e.message}")
                     throw e // Re-throw para propagar o cancelamento
                 }
+                is kotlinx.coroutines.TimeoutCancellationException -> {
+                    Log.e(TAG, "⏰ Timeout na geração de imagem")
+                    Log.e(TAG, "⏰ Motivo: ${e.message}")
+                    throw e // Re-throw para propagar o timeout
+                }
                 else -> {
                     Log.e(TAG, "💥 EXCEÇÃO CAPTURADA na geração de imagem")
                     Log.e(TAG, "💥 Tipo da exceção: ${e.javaClass.simpleName}")
@@ -191,7 +204,7 @@ class ImageGenerationService {
     }
     
     /**
-     * Testa a conectividade com o worker
+     * Testa a conectividade com o worker com timeout otimizado
      * @return true se conseguir conectar, false caso contrário
      */
     suspend fun testWorkerConnectivity(): Boolean {
@@ -206,8 +219,8 @@ class ImageGenerationService {
                 connection.setRequestProperty("Accept", "application/json")
                 connection.setRequestProperty("User-Agent", "NutriLivre-Android/1.0")
                 connection.setRequestProperty("Cache-Control", "no-cache")
-                connection.connectTimeout = 30000 // 30s para teste
-                connection.readTimeout = 30000
+                connection.connectTimeout = TEST_TIMEOUT.toInt()
+                connection.readTimeout = TEST_TIMEOUT.toInt()
                 
                 val responseCode = connection.responseCode
                 Log.d(TAG, "📊 Response code do teste: $responseCode")
@@ -266,8 +279,8 @@ class ImageGenerationService {
                 connection.requestMethod = "GET"
                 connection.setRequestProperty("Accept", "application/json")
                 connection.setRequestProperty("User-Agent", "NutriLivre-Android/1.0")
-                connection.connectTimeout = 120000 // 120s
-                connection.readTimeout = 120000
+                connection.connectTimeout = TEST_TIMEOUT.toInt()
+                connection.readTimeout = TEST_TIMEOUT.toInt()
                 
                 val responseCode = connection.responseCode
                 val responseText = connection.inputStream.reader().readText()
@@ -287,12 +300,24 @@ class ImageGenerationService {
     }
 
     /**
-     * Gera uma URL de fallback para imagens
+     * Gera uma URL de fallback para imagens com múltiplas opções
      * @param recipeName Nome da receita
      * @return URL de fallback
      */
     private fun getFallbackImageUrl(recipeName: String): String {
         val sanitizedName = recipeName.replace(" ", "").replace("[^a-zA-Z0-9]".toRegex(), "")
-        return "https://picsum.photos/seed/${sanitizedName}/400/300"
+        
+        // Lista de fallbacks em ordem de preferência
+        val fallbacks = listOf(
+            // Unsplash - imagens de comida de alta qualidade
+            "https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=400&h=300&fit=crop",
+            // Picsum com seed baseado no nome da receita
+            "https://picsum.photos/seed/${sanitizedName}/400/300",
+            // Imagem genérica de comida
+            "https://images.unsplash.com/photo-1504674900242-87b0b7b3b8c8?w=400&h=300&fit=crop"
+        )
+        
+        // Usar o primeiro fallback disponível
+        return fallbacks.first()
     }
 } 

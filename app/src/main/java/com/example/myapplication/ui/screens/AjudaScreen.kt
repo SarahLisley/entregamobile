@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -23,7 +24,7 @@ fun AjudaScreen(navController: NavHostController) {
                 title = { Text("Ajuda") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Filled.ArrowBack, contentDescription = "Voltar")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Voltar")
                     }
                 },
                 actions = {
@@ -66,5 +67,5 @@ fun AjudaScreen(navController: NavHostController) {
 
 @Composable
 fun Divider() {
-    androidx.compose.material3.Divider()
+    androidx.compose.material3.HorizontalDivider()
 }

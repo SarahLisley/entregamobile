@@ -12,6 +12,7 @@ import com.example.myapplication.core.ui.error.ErrorHandler
 import com.example.myapplication.feature.receitas.ReceitasViewModel
 import com.example.myapplication.feature.receitas.ChatViewModel
 import com.google.firebase.auth.FirebaseAuth
+import com.example.myapplication.BuildConfig
 
 class ViewModelFactory(private val context: Context) : ViewModelProvider.Factory {
     
@@ -28,7 +29,7 @@ class ViewModelFactory(private val context: Context) : ViewModelProvider.Factory
                 )
                 val nutritionRepository = NutritionRepository(
                     context = context,
-                    nutritionService = GeminiServiceImpl("AIzaSyASe0zo-r5mUrVd-ZQaOJHtRbKGy49Te4A")
+                    nutritionService = GeminiServiceImpl(BuildConfig.GEMINI_API_KEY)
                 )
                 val errorHandler = ErrorHandler()
                 
@@ -53,7 +54,7 @@ class ViewModelFactory(private val context: Context) : ViewModelProvider.Factory
                     imageStorageService = com.example.myapplication.core.data.storage.ImageStorageService(),
                     errorHandler = ErrorHandler()
                 )
-                val chatService = GeminiServiceImpl("AIzaSyASe0zo-r5mUrVd-ZQaOJHtRbKGy49Te4A")
+                val chatService = GeminiServiceImpl(BuildConfig.GEMINI_API_KEY)
                 val auth = FirebaseAuth.getInstance()
                 val authRepository = AuthRepository(auth)
                 

@@ -137,6 +137,7 @@ fun MainNav() {
                 com.example.myapplication.feature.receitas.ChatScreen(
                     chatViewModel = chatViewModel,
                     onGenerateRecipe = {
+                        // Navegar para a tela inicial quando o usuário clicar em "Ver Receitas"
                         navController.navigate(AppScreens.TelaInicialScreen.route) {
                             popUpTo(AppScreens.ChatScreen.route) { inclusive = true }
                         }

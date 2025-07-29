@@ -52,6 +52,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
@@ -89,6 +90,13 @@ import com.example.myapplication.ui.screens.ViewModelFactory
 import com.example.myapplication.feature.receitas.ReceitasUiState
 import java.net.URL
 import java.net.HttpURLConnection
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.TextButton
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
@@ -216,71 +224,73 @@ fun TelaInicial(navController: NavHostController) {
                         contentPadding = PaddingValues(8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        // Seção de receitas recomendadas
+                        // Seção de receitas recomendadas melhorada
                         if (recommendedRecipes.isNotEmpty()) {
                             item {
-                                Text(
-                                    text = "Recomendado para Você",
-                                    style = MaterialTheme.typography.titleLarge,
+                                Column(
                                     modifier = Modifier.padding(vertical = 16.dp, horizontal = 8.dp)
-                                )
-                            }
-                            
-                            item {
-                                LazyRow(
-                                    contentPadding = PaddingValues(horizontal = 8.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    items(recommendedRecipes) { receita ->
-                                        Card(
-                                            modifier = Modifier
-                                                .width(200.dp)
-                                                .clickable {
-                                                    navController.navigate(AppScreens.DetalheScreen.createRoute(receita.id))
-                                                },
-                                            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Column {
+                                            Text(
+                                                text = "Recomendado para Você",
+                                                style = MaterialTheme.typography.titleLarge,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                            Text(
+                                                text = "Receitas personalizadas baseadas nas suas preferências",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                            )
+                                        }
+                                        
+                                        TextButton(
+                                            onClick = { /* Navegar para mais recomendações */ }
                                         ) {
-                                            Column {
-                                                AsyncImage(
-                                                    model = receita.imagemUrl,
-                                                    contentDescription = receita.nome,
-                                                    modifier = Modifier
-                                                        .fillMaxWidth()
-                                                        .height(120.dp),
-                                                    contentScale = ContentScale.Crop,
-                                                    onError = { state ->
-                                                        Log.e("TelaInicial", "Erro ao carregar imagem: ${receita.imagemUrl}")
-                                                    },
-                                                    onSuccess = { state ->
-                                                        Log.d("TelaInicial", "Imagem carregada com sucesso: ${receita.imagemUrl}")
-                                                    }
-                                                )
-                                                Column(
-                                                    modifier = Modifier.padding(8.dp)
-                                                ) {
-                                                    Text(
-                                                        text = receita.nome,
-                                                        style = MaterialTheme.typography.titleSmall,
-                                                        maxLines = 2
-                                                    )
-                                                    Text(
-                                                        text = receita.descricaoCurta,
-                                                        style = MaterialTheme.typography.bodySmall,
-                                                        maxLines = 2
-                                                    )
-                                                }
-                                            }
+                                            Text("Ver Mais")
+                                            Icon(
+                                                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(16.dp)
+                                            )
                                         }
                                     }
                                 }
                             }
                             
                             item {
+                                LazyRow(
+                                    contentPadding = PaddingValues(horizontal = 8.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    items(recommendedRecipes) { receita ->
+                                        EnhancedRecipeCard(
+                                            receita = receita,
+                                            onClick = {
+                                                navController.navigate(AppScreens.DetalheScreen.createRoute(receita.id))
+                                            },
+                                            showRecommendationBadge = true
+                                        )
+                                    }
+                                }
+                            }
+                            
+                            item {
+                                Spacer(modifier = Modifier.height(24.dp))
+                                HorizontalDivider(
+                                    modifier = Modifier.padding(horizontal = 8.dp),
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+                                )
                                 Spacer(modifier = Modifier.height(16.dp))
                                 Text(
                                     text = "Todas as Receitas",
                                     style = MaterialTheme.typography.titleLarge,
-                                    modifier = Modifier.padding(vertical = 16.dp, horizontal = 8.dp)
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 8.dp)
                                 )
                             }
                         }
@@ -506,6 +516,236 @@ fun TelaInicial(navController: NavHostController) {
             }
         )
     }
+}
+
+@Composable
+fun EnhancedRecipeCard(
+    receita: com.example.myapplication.core.data.database.entity.ReceitaEntity,
+    onClick: () -> Unit,
+    showRecommendationBadge: Boolean = false
+) {
+    Card(
+        modifier = Modifier
+            .width(280.dp)
+            .clickable { onClick() },
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Box {
+            Column {
+                // Imagem com overlay
+                Box {
+                    AsyncImage(
+                        model = receita.imagemUrl,
+                        contentDescription = receita.nome,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(160.dp),
+                        contentScale = ContentScale.Crop,
+                        onError = { state ->
+                            Log.e("EnhancedRecipeCard", "Erro ao carregar imagem: ${receita.imagemUrl}")
+                        },
+                        onSuccess = { state ->
+                            Log.d("EnhancedRecipeCard", "Imagem carregada com sucesso: ${receita.imagemUrl}")
+                        }
+                    )
+                    
+                    // Badge de recomendação
+                    if (showRecommendationBadge) {
+                        Card(
+                            modifier = Modifier
+                                .padding(8.dp)
+                                .align(Alignment.TopStart),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.primary
+                            ),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text(
+                                text = "⭐ Recomendado",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
+                    
+                    // Badge de tempo de preparo
+                    Card(
+                        modifier = Modifier
+                            .padding(8.dp)
+                            .align(Alignment.TopEnd),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
+                        ),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Schedule,
+                                contentDescription = null,
+                                modifier = Modifier.size(12.dp),
+                                tint = MaterialTheme.colorScheme.onSurface
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = receita.tempoPreparo,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
+                }
+                
+                Column(
+                    modifier = Modifier.padding(16.dp)
+                ) {
+                    Text(
+                        text = receita.nome,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 2
+                    )
+                    
+                    Spacer(modifier = Modifier.height(4.dp))
+                    
+                    Text(
+                        text = receita.descricaoCurta,
+                        style = MaterialTheme.typography.bodySmall,
+                        maxLines = 2,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                    )
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    // Tags da receita
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        val tags = extractRecipeTags(receita)
+                        items(tags.take(3)) { tag ->
+                            Card(
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.secondaryContainer
+                                ),
+                                shape = RoundedCornerShape(4.dp)
+                            ) {
+                                Text(
+                                    text = tag,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    // Estatísticas da receita
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ThumbUp,
+                                contentDescription = null,
+                                modifier = Modifier.size(14.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "${receita.curtidas?.size ?: 0}",
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        }
+                        
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Favorite,
+                                contentDescription = null,
+                                modifier = Modifier.size(14.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "${receita.favoritos?.size ?: 0}",
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        }
+                        
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Person,
+                                contentDescription = null,
+                                modifier = Modifier.size(14.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "${receita.porcoes} porções",
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Função auxiliar para extrair tags da receita
+private fun extractRecipeTags(receita: com.example.myapplication.core.data.database.entity.ReceitaEntity): List<String> {
+    val tags = mutableListOf<String>()
+    
+    // Analisar ingredientes para extrair tags
+    receita.ingredientes.forEach { ingrediente ->
+        when {
+            ingrediente.contains("carne", ignoreCase = true) -> tags.add("Carne")
+            ingrediente.contains("frango", ignoreCase = true) -> tags.add("Frango")
+            ingrediente.contains("peixe", ignoreCase = true) -> tags.add("Peixe")
+            ingrediente.contains("leite", ignoreCase = true) -> tags.add("Lácteo")
+            ingrediente.contains("queijo", ignoreCase = true) -> tags.add("Queijo")
+            ingrediente.contains("trigo", ignoreCase = true) -> tags.add("Glúten")
+            ingrediente.contains("farinha", ignoreCase = true) -> tags.add("Farinha")
+            ingrediente.contains("açúcar", ignoreCase = true) -> tags.add("Doce")
+            ingrediente.contains("óleo", ignoreCase = true) -> tags.add("Óleo")
+            ingrediente.contains("sal", ignoreCase = true) -> tags.add("Salgado")
+            ingrediente.contains("ovo", ignoreCase = true) -> tags.add("Ovo")
+            ingrediente.contains("legume", ignoreCase = true) -> tags.add("Legume")
+            ingrediente.contains("fruta", ignoreCase = true) -> tags.add("Fruta")
+            ingrediente.contains("aveia", ignoreCase = true) -> tags.add("Fibras")
+            ingrediente.contains("cenoura", ignoreCase = true) -> tags.add("Vitamina A")
+            ingrediente.contains("espinafre", ignoreCase = true) -> tags.add("Ferro")
+            ingrediente.contains("brócolis", ignoreCase = true) -> tags.add("Vitamina C")
+        }
+    }
+    
+    // Adicionar tags baseadas no tempo de preparo
+    when {
+        receita.tempoPreparo.contains("15") || receita.tempoPreparo.contains("20") -> tags.add("Rápido")
+        receita.tempoPreparo.contains("30") || receita.tempoPreparo.contains("45") -> tags.add("Médio")
+        else -> tags.add("Elaborado")
+    }
+    
+    // Adicionar tags baseadas no número de porções
+    when {
+        receita.porcoes <= 2 -> tags.add("Poucas porções")
+        receita.porcoes <= 4 -> tags.add("Família")
+        else -> tags.add("Grande quantidade")
+    }
+    
+    return tags.distinct().take(3) // Limitar a 3 tags únicas
 }
 
 @Composable
