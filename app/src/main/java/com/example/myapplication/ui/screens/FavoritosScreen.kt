@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.example.myapplication.navigation.AppScreens
 import com.example.myapplication.ui.components.BottomNavigationBar
+import com.example.myapplication.ui.components.SwipeableRecipeCard
 import com.example.myapplication.core.data.repository.ReceitasRepository
 import kotlinx.coroutines.launch
 import coil.compose.AsyncImage
@@ -502,12 +503,16 @@ fun FavoritesListView(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         items(favoritos) { receita ->
-            EnhancedFavoriteCard(
+            SwipeableRecipeCard(
                 receita = receita,
-                modifier = Modifier.fillMaxWidth(),
-                onClick = { onRecipeClick(receita) },
-                onFavoriteClick = { onFavoriteClick(receita.id, receita.userId, receita.favoritos) },
-                onShareClick = { onShareClick(receita) }
+                onSwipeToFavorite = {
+                    // Como já é favorito, não faz nada
+                },
+                onCardClick = { onRecipeClick(receita) },
+                onFavoriteClick = { isFavorite ->
+                    onFavoriteClick(receita.id, receita.userId, receita.favoritos)
+                },
+                modifier = Modifier.fillMaxWidth()
             )
         }
     }

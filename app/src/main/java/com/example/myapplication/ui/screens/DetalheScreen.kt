@@ -31,6 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -38,6 +39,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
+import com.example.myapplication.ui.components.CachedImage
 import com.example.myapplication.navigation.AppScreens
 import com.example.myapplication.ui.theme.GreenPrimary
 import com.example.myapplication.ui.theme.OrangeSecondary
@@ -425,11 +427,12 @@ fun HeroSection(receita: com.example.myapplication.core.data.database.entity.Rec
             .fillMaxWidth()
             .height(300.dp)
     ) {
-        // Imagem de fundo
-        AsyncImage(
-            model = receita.imagemUrl,
+        // Imagem de fundo com cache inteligente
+        CachedImage(
+            url = receita.imagemUrl,
             contentDescription = receita.nome,
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop
         )
         
         // Gradiente sobreposto

@@ -110,6 +110,9 @@ dependencies {
     // WorkManager para sincronização em background
     implementation(libs.work.manager)
     
+    // Paging para listas grandes
+    implementation(libs.bundles.paging)
+    
     // Hilt para injeção de dependência
     // implementation(libs.hilt.android)
     // kapt(libs.hilt.compiler)

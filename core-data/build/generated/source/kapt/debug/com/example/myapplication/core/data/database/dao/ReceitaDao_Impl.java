@@ -877,6 +877,568 @@ public final class ReceitaDao_Impl implements ReceitaDao {
     }, $completion);
   }
 
+  @Override
+  public Object getReceitasPaginated(final int offset, final int limit,
+      final Continuation<? super List<ReceitaEntity>> $completion) {
+    final String _sql = "SELECT * FROM receitas ORDER BY lastModified DESC LIMIT ? OFFSET ?";
+    final RoomSQLiteQuery _statement = RoomSQLiteQuery.acquire(_sql, 2);
+    int _argIndex = 1;
+    _statement.bindLong(_argIndex, limit);
+    _argIndex = 2;
+    _statement.bindLong(_argIndex, offset);
+    final CancellationSignal _cancellationSignal = DBUtil.createCancellationSignal();
+    return CoroutinesRoom.execute(__db, false, _cancellationSignal, new Callable<List<ReceitaEntity>>() {
+      @Override
+      @NonNull
+      public List<ReceitaEntity> call() throws Exception {
+        final Cursor _cursor = DBUtil.query(__db, _statement, false, null);
+        try {
+          final int _cursorIndexOfId = CursorUtil.getColumnIndexOrThrow(_cursor, "id");
+          final int _cursorIndexOfNome = CursorUtil.getColumnIndexOrThrow(_cursor, "nome");
+          final int _cursorIndexOfDescricaoCurta = CursorUtil.getColumnIndexOrThrow(_cursor, "descricaoCurta");
+          final int _cursorIndexOfImagemUrl = CursorUtil.getColumnIndexOrThrow(_cursor, "imagemUrl");
+          final int _cursorIndexOfIngredientes = CursorUtil.getColumnIndexOrThrow(_cursor, "ingredientes");
+          final int _cursorIndexOfModoPreparo = CursorUtil.getColumnIndexOrThrow(_cursor, "modoPreparo");
+          final int _cursorIndexOfTempoPreparo = CursorUtil.getColumnIndexOrThrow(_cursor, "tempoPreparo");
+          final int _cursorIndexOfPorcoes = CursorUtil.getColumnIndexOrThrow(_cursor, "porcoes");
+          final int _cursorIndexOfUserId = CursorUtil.getColumnIndexOrThrow(_cursor, "userId");
+          final int _cursorIndexOfUserEmail = CursorUtil.getColumnIndexOrThrow(_cursor, "userEmail");
+          final int _cursorIndexOfCurtidas = CursorUtil.getColumnIndexOrThrow(_cursor, "curtidas");
+          final int _cursorIndexOfFavoritos = CursorUtil.getColumnIndexOrThrow(_cursor, "favoritos");
+          final int _cursorIndexOfTags = CursorUtil.getColumnIndexOrThrow(_cursor, "tags");
+          final int _cursorIndexOfIsSynced = CursorUtil.getColumnIndexOrThrow(_cursor, "isSynced");
+          final int _cursorIndexOfLastModified = CursorUtil.getColumnIndexOrThrow(_cursor, "lastModified");
+          final List<ReceitaEntity> _result = new ArrayList<ReceitaEntity>(_cursor.getCount());
+          while (_cursor.moveToNext()) {
+            final ReceitaEntity _item;
+            final String _tmpId;
+            if (_cursor.isNull(_cursorIndexOfId)) {
+              _tmpId = null;
+            } else {
+              _tmpId = _cursor.getString(_cursorIndexOfId);
+            }
+            final String _tmpNome;
+            if (_cursor.isNull(_cursorIndexOfNome)) {
+              _tmpNome = null;
+            } else {
+              _tmpNome = _cursor.getString(_cursorIndexOfNome);
+            }
+            final String _tmpDescricaoCurta;
+            if (_cursor.isNull(_cursorIndexOfDescricaoCurta)) {
+              _tmpDescricaoCurta = null;
+            } else {
+              _tmpDescricaoCurta = _cursor.getString(_cursorIndexOfDescricaoCurta);
+            }
+            final String _tmpImagemUrl;
+            if (_cursor.isNull(_cursorIndexOfImagemUrl)) {
+              _tmpImagemUrl = null;
+            } else {
+              _tmpImagemUrl = _cursor.getString(_cursorIndexOfImagemUrl);
+            }
+            final List<String> _tmpIngredientes;
+            final String _tmp;
+            if (_cursor.isNull(_cursorIndexOfIngredientes)) {
+              _tmp = null;
+            } else {
+              _tmp = _cursor.getString(_cursorIndexOfIngredientes);
+            }
+            _tmpIngredientes = __converters.fromString(_tmp);
+            final List<String> _tmpModoPreparo;
+            final String _tmp_1;
+            if (_cursor.isNull(_cursorIndexOfModoPreparo)) {
+              _tmp_1 = null;
+            } else {
+              _tmp_1 = _cursor.getString(_cursorIndexOfModoPreparo);
+            }
+            _tmpModoPreparo = __converters.fromString(_tmp_1);
+            final String _tmpTempoPreparo;
+            if (_cursor.isNull(_cursorIndexOfTempoPreparo)) {
+              _tmpTempoPreparo = null;
+            } else {
+              _tmpTempoPreparo = _cursor.getString(_cursorIndexOfTempoPreparo);
+            }
+            final int _tmpPorcoes;
+            _tmpPorcoes = _cursor.getInt(_cursorIndexOfPorcoes);
+            final String _tmpUserId;
+            if (_cursor.isNull(_cursorIndexOfUserId)) {
+              _tmpUserId = null;
+            } else {
+              _tmpUserId = _cursor.getString(_cursorIndexOfUserId);
+            }
+            final String _tmpUserEmail;
+            if (_cursor.isNull(_cursorIndexOfUserEmail)) {
+              _tmpUserEmail = null;
+            } else {
+              _tmpUserEmail = _cursor.getString(_cursorIndexOfUserEmail);
+            }
+            final List<String> _tmpCurtidas;
+            final String _tmp_2;
+            if (_cursor.isNull(_cursorIndexOfCurtidas)) {
+              _tmp_2 = null;
+            } else {
+              _tmp_2 = _cursor.getString(_cursorIndexOfCurtidas);
+            }
+            _tmpCurtidas = __converters.fromString(_tmp_2);
+            final List<String> _tmpFavoritos;
+            final String _tmp_3;
+            if (_cursor.isNull(_cursorIndexOfFavoritos)) {
+              _tmp_3 = null;
+            } else {
+              _tmp_3 = _cursor.getString(_cursorIndexOfFavoritos);
+            }
+            _tmpFavoritos = __converters.fromString(_tmp_3);
+            final List<String> _tmpTags;
+            final String _tmp_4;
+            if (_cursor.isNull(_cursorIndexOfTags)) {
+              _tmp_4 = null;
+            } else {
+              _tmp_4 = _cursor.getString(_cursorIndexOfTags);
+            }
+            _tmpTags = __converters.fromString(_tmp_4);
+            final boolean _tmpIsSynced;
+            final int _tmp_5;
+            _tmp_5 = _cursor.getInt(_cursorIndexOfIsSynced);
+            _tmpIsSynced = _tmp_5 != 0;
+            final long _tmpLastModified;
+            _tmpLastModified = _cursor.getLong(_cursorIndexOfLastModified);
+            _item = new ReceitaEntity(_tmpId,_tmpNome,_tmpDescricaoCurta,_tmpImagemUrl,_tmpIngredientes,_tmpModoPreparo,_tmpTempoPreparo,_tmpPorcoes,_tmpUserId,_tmpUserEmail,_tmpCurtidas,_tmpFavoritos,_tmpTags,_tmpIsSynced,_tmpLastModified);
+            _result.add(_item);
+          }
+          return _result;
+        } finally {
+          _cursor.close();
+          _statement.release();
+        }
+      }
+    }, $completion);
+  }
+
+  @Override
+  public Object searchReceitasPaginated(final String query, final int offset, final int limit,
+      final Continuation<? super List<ReceitaEntity>> $completion) {
+    final String _sql = "SELECT * FROM receitas WHERE nome LIKE ? ORDER BY lastModified DESC LIMIT ? OFFSET ?";
+    final RoomSQLiteQuery _statement = RoomSQLiteQuery.acquire(_sql, 3);
+    int _argIndex = 1;
+    if (query == null) {
+      _statement.bindNull(_argIndex);
+    } else {
+      _statement.bindString(_argIndex, query);
+    }
+    _argIndex = 2;
+    _statement.bindLong(_argIndex, limit);
+    _argIndex = 3;
+    _statement.bindLong(_argIndex, offset);
+    final CancellationSignal _cancellationSignal = DBUtil.createCancellationSignal();
+    return CoroutinesRoom.execute(__db, false, _cancellationSignal, new Callable<List<ReceitaEntity>>() {
+      @Override
+      @NonNull
+      public List<ReceitaEntity> call() throws Exception {
+        final Cursor _cursor = DBUtil.query(__db, _statement, false, null);
+        try {
+          final int _cursorIndexOfId = CursorUtil.getColumnIndexOrThrow(_cursor, "id");
+          final int _cursorIndexOfNome = CursorUtil.getColumnIndexOrThrow(_cursor, "nome");
+          final int _cursorIndexOfDescricaoCurta = CursorUtil.getColumnIndexOrThrow(_cursor, "descricaoCurta");
+          final int _cursorIndexOfImagemUrl = CursorUtil.getColumnIndexOrThrow(_cursor, "imagemUrl");
+          final int _cursorIndexOfIngredientes = CursorUtil.getColumnIndexOrThrow(_cursor, "ingredientes");
+          final int _cursorIndexOfModoPreparo = CursorUtil.getColumnIndexOrThrow(_cursor, "modoPreparo");
+          final int _cursorIndexOfTempoPreparo = CursorUtil.getColumnIndexOrThrow(_cursor, "tempoPreparo");
+          final int _cursorIndexOfPorcoes = CursorUtil.getColumnIndexOrThrow(_cursor, "porcoes");
+          final int _cursorIndexOfUserId = CursorUtil.getColumnIndexOrThrow(_cursor, "userId");
+          final int _cursorIndexOfUserEmail = CursorUtil.getColumnIndexOrThrow(_cursor, "userEmail");
+          final int _cursorIndexOfCurtidas = CursorUtil.getColumnIndexOrThrow(_cursor, "curtidas");
+          final int _cursorIndexOfFavoritos = CursorUtil.getColumnIndexOrThrow(_cursor, "favoritos");
+          final int _cursorIndexOfTags = CursorUtil.getColumnIndexOrThrow(_cursor, "tags");
+          final int _cursorIndexOfIsSynced = CursorUtil.getColumnIndexOrThrow(_cursor, "isSynced");
+          final int _cursorIndexOfLastModified = CursorUtil.getColumnIndexOrThrow(_cursor, "lastModified");
+          final List<ReceitaEntity> _result = new ArrayList<ReceitaEntity>(_cursor.getCount());
+          while (_cursor.moveToNext()) {
+            final ReceitaEntity _item;
+            final String _tmpId;
+            if (_cursor.isNull(_cursorIndexOfId)) {
+              _tmpId = null;
+            } else {
+              _tmpId = _cursor.getString(_cursorIndexOfId);
+            }
+            final String _tmpNome;
+            if (_cursor.isNull(_cursorIndexOfNome)) {
+              _tmpNome = null;
+            } else {
+              _tmpNome = _cursor.getString(_cursorIndexOfNome);
+            }
+            final String _tmpDescricaoCurta;
+            if (_cursor.isNull(_cursorIndexOfDescricaoCurta)) {
+              _tmpDescricaoCurta = null;
+            } else {
+              _tmpDescricaoCurta = _cursor.getString(_cursorIndexOfDescricaoCurta);
+            }
+            final String _tmpImagemUrl;
+            if (_cursor.isNull(_cursorIndexOfImagemUrl)) {
+              _tmpImagemUrl = null;
+            } else {
+              _tmpImagemUrl = _cursor.getString(_cursorIndexOfImagemUrl);
+            }
+            final List<String> _tmpIngredientes;
+            final String _tmp;
+            if (_cursor.isNull(_cursorIndexOfIngredientes)) {
+              _tmp = null;
+            } else {
+              _tmp = _cursor.getString(_cursorIndexOfIngredientes);
+            }
+            _tmpIngredientes = __converters.fromString(_tmp);
+            final List<String> _tmpModoPreparo;
+            final String _tmp_1;
+            if (_cursor.isNull(_cursorIndexOfModoPreparo)) {
+              _tmp_1 = null;
+            } else {
+              _tmp_1 = _cursor.getString(_cursorIndexOfModoPreparo);
+            }
+            _tmpModoPreparo = __converters.fromString(_tmp_1);
+            final String _tmpTempoPreparo;
+            if (_cursor.isNull(_cursorIndexOfTempoPreparo)) {
+              _tmpTempoPreparo = null;
+            } else {
+              _tmpTempoPreparo = _cursor.getString(_cursorIndexOfTempoPreparo);
+            }
+            final int _tmpPorcoes;
+            _tmpPorcoes = _cursor.getInt(_cursorIndexOfPorcoes);
+            final String _tmpUserId;
+            if (_cursor.isNull(_cursorIndexOfUserId)) {
+              _tmpUserId = null;
+            } else {
+              _tmpUserId = _cursor.getString(_cursorIndexOfUserId);
+            }
+            final String _tmpUserEmail;
+            if (_cursor.isNull(_cursorIndexOfUserEmail)) {
+              _tmpUserEmail = null;
+            } else {
+              _tmpUserEmail = _cursor.getString(_cursorIndexOfUserEmail);
+            }
+            final List<String> _tmpCurtidas;
+            final String _tmp_2;
+            if (_cursor.isNull(_cursorIndexOfCurtidas)) {
+              _tmp_2 = null;
+            } else {
+              _tmp_2 = _cursor.getString(_cursorIndexOfCurtidas);
+            }
+            _tmpCurtidas = __converters.fromString(_tmp_2);
+            final List<String> _tmpFavoritos;
+            final String _tmp_3;
+            if (_cursor.isNull(_cursorIndexOfFavoritos)) {
+              _tmp_3 = null;
+            } else {
+              _tmp_3 = _cursor.getString(_cursorIndexOfFavoritos);
+            }
+            _tmpFavoritos = __converters.fromString(_tmp_3);
+            final List<String> _tmpTags;
+            final String _tmp_4;
+            if (_cursor.isNull(_cursorIndexOfTags)) {
+              _tmp_4 = null;
+            } else {
+              _tmp_4 = _cursor.getString(_cursorIndexOfTags);
+            }
+            _tmpTags = __converters.fromString(_tmp_4);
+            final boolean _tmpIsSynced;
+            final int _tmp_5;
+            _tmp_5 = _cursor.getInt(_cursorIndexOfIsSynced);
+            _tmpIsSynced = _tmp_5 != 0;
+            final long _tmpLastModified;
+            _tmpLastModified = _cursor.getLong(_cursorIndexOfLastModified);
+            _item = new ReceitaEntity(_tmpId,_tmpNome,_tmpDescricaoCurta,_tmpImagemUrl,_tmpIngredientes,_tmpModoPreparo,_tmpTempoPreparo,_tmpPorcoes,_tmpUserId,_tmpUserEmail,_tmpCurtidas,_tmpFavoritos,_tmpTags,_tmpIsSynced,_tmpLastModified);
+            _result.add(_item);
+          }
+          return _result;
+        } finally {
+          _cursor.close();
+          _statement.release();
+        }
+      }
+    }, $completion);
+  }
+
+  @Override
+  public Object getFavoritosPaginated(final String userId, final int offset, final int limit,
+      final Continuation<? super List<ReceitaEntity>> $completion) {
+    final String _sql = "SELECT * FROM receitas WHERE favoritos LIKE '%' || ? || '%' ORDER BY lastModified DESC LIMIT ? OFFSET ?";
+    final RoomSQLiteQuery _statement = RoomSQLiteQuery.acquire(_sql, 3);
+    int _argIndex = 1;
+    if (userId == null) {
+      _statement.bindNull(_argIndex);
+    } else {
+      _statement.bindString(_argIndex, userId);
+    }
+    _argIndex = 2;
+    _statement.bindLong(_argIndex, limit);
+    _argIndex = 3;
+    _statement.bindLong(_argIndex, offset);
+    final CancellationSignal _cancellationSignal = DBUtil.createCancellationSignal();
+    return CoroutinesRoom.execute(__db, false, _cancellationSignal, new Callable<List<ReceitaEntity>>() {
+      @Override
+      @NonNull
+      public List<ReceitaEntity> call() throws Exception {
+        final Cursor _cursor = DBUtil.query(__db, _statement, false, null);
+        try {
+          final int _cursorIndexOfId = CursorUtil.getColumnIndexOrThrow(_cursor, "id");
+          final int _cursorIndexOfNome = CursorUtil.getColumnIndexOrThrow(_cursor, "nome");
+          final int _cursorIndexOfDescricaoCurta = CursorUtil.getColumnIndexOrThrow(_cursor, "descricaoCurta");
+          final int _cursorIndexOfImagemUrl = CursorUtil.getColumnIndexOrThrow(_cursor, "imagemUrl");
+          final int _cursorIndexOfIngredientes = CursorUtil.getColumnIndexOrThrow(_cursor, "ingredientes");
+          final int _cursorIndexOfModoPreparo = CursorUtil.getColumnIndexOrThrow(_cursor, "modoPreparo");
+          final int _cursorIndexOfTempoPreparo = CursorUtil.getColumnIndexOrThrow(_cursor, "tempoPreparo");
+          final int _cursorIndexOfPorcoes = CursorUtil.getColumnIndexOrThrow(_cursor, "porcoes");
+          final int _cursorIndexOfUserId = CursorUtil.getColumnIndexOrThrow(_cursor, "userId");
+          final int _cursorIndexOfUserEmail = CursorUtil.getColumnIndexOrThrow(_cursor, "userEmail");
+          final int _cursorIndexOfCurtidas = CursorUtil.getColumnIndexOrThrow(_cursor, "curtidas");
+          final int _cursorIndexOfFavoritos = CursorUtil.getColumnIndexOrThrow(_cursor, "favoritos");
+          final int _cursorIndexOfTags = CursorUtil.getColumnIndexOrThrow(_cursor, "tags");
+          final int _cursorIndexOfIsSynced = CursorUtil.getColumnIndexOrThrow(_cursor, "isSynced");
+          final int _cursorIndexOfLastModified = CursorUtil.getColumnIndexOrThrow(_cursor, "lastModified");
+          final List<ReceitaEntity> _result = new ArrayList<ReceitaEntity>(_cursor.getCount());
+          while (_cursor.moveToNext()) {
+            final ReceitaEntity _item;
+            final String _tmpId;
+            if (_cursor.isNull(_cursorIndexOfId)) {
+              _tmpId = null;
+            } else {
+              _tmpId = _cursor.getString(_cursorIndexOfId);
+            }
+            final String _tmpNome;
+            if (_cursor.isNull(_cursorIndexOfNome)) {
+              _tmpNome = null;
+            } else {
+              _tmpNome = _cursor.getString(_cursorIndexOfNome);
+            }
+            final String _tmpDescricaoCurta;
+            if (_cursor.isNull(_cursorIndexOfDescricaoCurta)) {
+              _tmpDescricaoCurta = null;
+            } else {
+              _tmpDescricaoCurta = _cursor.getString(_cursorIndexOfDescricaoCurta);
+            }
+            final String _tmpImagemUrl;
+            if (_cursor.isNull(_cursorIndexOfImagemUrl)) {
+              _tmpImagemUrl = null;
+            } else {
+              _tmpImagemUrl = _cursor.getString(_cursorIndexOfImagemUrl);
+            }
+            final List<String> _tmpIngredientes;
+            final String _tmp;
+            if (_cursor.isNull(_cursorIndexOfIngredientes)) {
+              _tmp = null;
+            } else {
+              _tmp = _cursor.getString(_cursorIndexOfIngredientes);
+            }
+            _tmpIngredientes = __converters.fromString(_tmp);
+            final List<String> _tmpModoPreparo;
+            final String _tmp_1;
+            if (_cursor.isNull(_cursorIndexOfModoPreparo)) {
+              _tmp_1 = null;
+            } else {
+              _tmp_1 = _cursor.getString(_cursorIndexOfModoPreparo);
+            }
+            _tmpModoPreparo = __converters.fromString(_tmp_1);
+            final String _tmpTempoPreparo;
+            if (_cursor.isNull(_cursorIndexOfTempoPreparo)) {
+              _tmpTempoPreparo = null;
+            } else {
+              _tmpTempoPreparo = _cursor.getString(_cursorIndexOfTempoPreparo);
+            }
+            final int _tmpPorcoes;
+            _tmpPorcoes = _cursor.getInt(_cursorIndexOfPorcoes);
+            final String _tmpUserId;
+            if (_cursor.isNull(_cursorIndexOfUserId)) {
+              _tmpUserId = null;
+            } else {
+              _tmpUserId = _cursor.getString(_cursorIndexOfUserId);
+            }
+            final String _tmpUserEmail;
+            if (_cursor.isNull(_cursorIndexOfUserEmail)) {
+              _tmpUserEmail = null;
+            } else {
+              _tmpUserEmail = _cursor.getString(_cursorIndexOfUserEmail);
+            }
+            final List<String> _tmpCurtidas;
+            final String _tmp_2;
+            if (_cursor.isNull(_cursorIndexOfCurtidas)) {
+              _tmp_2 = null;
+            } else {
+              _tmp_2 = _cursor.getString(_cursorIndexOfCurtidas);
+            }
+            _tmpCurtidas = __converters.fromString(_tmp_2);
+            final List<String> _tmpFavoritos;
+            final String _tmp_3;
+            if (_cursor.isNull(_cursorIndexOfFavoritos)) {
+              _tmp_3 = null;
+            } else {
+              _tmp_3 = _cursor.getString(_cursorIndexOfFavoritos);
+            }
+            _tmpFavoritos = __converters.fromString(_tmp_3);
+            final List<String> _tmpTags;
+            final String _tmp_4;
+            if (_cursor.isNull(_cursorIndexOfTags)) {
+              _tmp_4 = null;
+            } else {
+              _tmp_4 = _cursor.getString(_cursorIndexOfTags);
+            }
+            _tmpTags = __converters.fromString(_tmp_4);
+            final boolean _tmpIsSynced;
+            final int _tmp_5;
+            _tmp_5 = _cursor.getInt(_cursorIndexOfIsSynced);
+            _tmpIsSynced = _tmp_5 != 0;
+            final long _tmpLastModified;
+            _tmpLastModified = _cursor.getLong(_cursorIndexOfLastModified);
+            _item = new ReceitaEntity(_tmpId,_tmpNome,_tmpDescricaoCurta,_tmpImagemUrl,_tmpIngredientes,_tmpModoPreparo,_tmpTempoPreparo,_tmpPorcoes,_tmpUserId,_tmpUserEmail,_tmpCurtidas,_tmpFavoritos,_tmpTags,_tmpIsSynced,_tmpLastModified);
+            _result.add(_item);
+          }
+          return _result;
+        } finally {
+          _cursor.close();
+          _statement.release();
+        }
+      }
+    }, $completion);
+  }
+
+  @Override
+  public Object getReceitasPorTagPaginated(final String tag, final int offset, final int limit,
+      final Continuation<? super List<ReceitaEntity>> $completion) {
+    final String _sql = "SELECT * FROM receitas WHERE tags LIKE '%' || ? || '%' ORDER BY lastModified DESC LIMIT ? OFFSET ?";
+    final RoomSQLiteQuery _statement = RoomSQLiteQuery.acquire(_sql, 3);
+    int _argIndex = 1;
+    if (tag == null) {
+      _statement.bindNull(_argIndex);
+    } else {
+      _statement.bindString(_argIndex, tag);
+    }
+    _argIndex = 2;
+    _statement.bindLong(_argIndex, limit);
+    _argIndex = 3;
+    _statement.bindLong(_argIndex, offset);
+    final CancellationSignal _cancellationSignal = DBUtil.createCancellationSignal();
+    return CoroutinesRoom.execute(__db, false, _cancellationSignal, new Callable<List<ReceitaEntity>>() {
+      @Override
+      @NonNull
+      public List<ReceitaEntity> call() throws Exception {
+        final Cursor _cursor = DBUtil.query(__db, _statement, false, null);
+        try {
+          final int _cursorIndexOfId = CursorUtil.getColumnIndexOrThrow(_cursor, "id");
+          final int _cursorIndexOfNome = CursorUtil.getColumnIndexOrThrow(_cursor, "nome");
+          final int _cursorIndexOfDescricaoCurta = CursorUtil.getColumnIndexOrThrow(_cursor, "descricaoCurta");
+          final int _cursorIndexOfImagemUrl = CursorUtil.getColumnIndexOrThrow(_cursor, "imagemUrl");
+          final int _cursorIndexOfIngredientes = CursorUtil.getColumnIndexOrThrow(_cursor, "ingredientes");
+          final int _cursorIndexOfModoPreparo = CursorUtil.getColumnIndexOrThrow(_cursor, "modoPreparo");
+          final int _cursorIndexOfTempoPreparo = CursorUtil.getColumnIndexOrThrow(_cursor, "tempoPreparo");
+          final int _cursorIndexOfPorcoes = CursorUtil.getColumnIndexOrThrow(_cursor, "porcoes");
+          final int _cursorIndexOfUserId = CursorUtil.getColumnIndexOrThrow(_cursor, "userId");
+          final int _cursorIndexOfUserEmail = CursorUtil.getColumnIndexOrThrow(_cursor, "userEmail");
+          final int _cursorIndexOfCurtidas = CursorUtil.getColumnIndexOrThrow(_cursor, "curtidas");
+          final int _cursorIndexOfFavoritos = CursorUtil.getColumnIndexOrThrow(_cursor, "favoritos");
+          final int _cursorIndexOfTags = CursorUtil.getColumnIndexOrThrow(_cursor, "tags");
+          final int _cursorIndexOfIsSynced = CursorUtil.getColumnIndexOrThrow(_cursor, "isSynced");
+          final int _cursorIndexOfLastModified = CursorUtil.getColumnIndexOrThrow(_cursor, "lastModified");
+          final List<ReceitaEntity> _result = new ArrayList<ReceitaEntity>(_cursor.getCount());
+          while (_cursor.moveToNext()) {
+            final ReceitaEntity _item;
+            final String _tmpId;
+            if (_cursor.isNull(_cursorIndexOfId)) {
+              _tmpId = null;
+            } else {
+              _tmpId = _cursor.getString(_cursorIndexOfId);
+            }
+            final String _tmpNome;
+            if (_cursor.isNull(_cursorIndexOfNome)) {
+              _tmpNome = null;
+            } else {
+              _tmpNome = _cursor.getString(_cursorIndexOfNome);
+            }
+            final String _tmpDescricaoCurta;
+            if (_cursor.isNull(_cursorIndexOfDescricaoCurta)) {
+              _tmpDescricaoCurta = null;
+            } else {
+              _tmpDescricaoCurta = _cursor.getString(_cursorIndexOfDescricaoCurta);
+            }
+            final String _tmpImagemUrl;
+            if (_cursor.isNull(_cursorIndexOfImagemUrl)) {
+              _tmpImagemUrl = null;
+            } else {
+              _tmpImagemUrl = _cursor.getString(_cursorIndexOfImagemUrl);
+            }
+            final List<String> _tmpIngredientes;
+            final String _tmp;
+            if (_cursor.isNull(_cursorIndexOfIngredientes)) {
+              _tmp = null;
+            } else {
+              _tmp = _cursor.getString(_cursorIndexOfIngredientes);
+            }
+            _tmpIngredientes = __converters.fromString(_tmp);
+            final List<String> _tmpModoPreparo;
+            final String _tmp_1;
+            if (_cursor.isNull(_cursorIndexOfModoPreparo)) {
+              _tmp_1 = null;
+            } else {
+              _tmp_1 = _cursor.getString(_cursorIndexOfModoPreparo);
+            }
+            _tmpModoPreparo = __converters.fromString(_tmp_1);
+            final String _tmpTempoPreparo;
+            if (_cursor.isNull(_cursorIndexOfTempoPreparo)) {
+              _tmpTempoPreparo = null;
+            } else {
+              _tmpTempoPreparo = _cursor.getString(_cursorIndexOfTempoPreparo);
+            }
+            final int _tmpPorcoes;
+            _tmpPorcoes = _cursor.getInt(_cursorIndexOfPorcoes);
+            final String _tmpUserId;
+            if (_cursor.isNull(_cursorIndexOfUserId)) {
+              _tmpUserId = null;
+            } else {
+              _tmpUserId = _cursor.getString(_cursorIndexOfUserId);
+            }
+            final String _tmpUserEmail;
+            if (_cursor.isNull(_cursorIndexOfUserEmail)) {
+              _tmpUserEmail = null;
+            } else {
+              _tmpUserEmail = _cursor.getString(_cursorIndexOfUserEmail);
+            }
+            final List<String> _tmpCurtidas;
+            final String _tmp_2;
+            if (_cursor.isNull(_cursorIndexOfCurtidas)) {
+              _tmp_2 = null;
+            } else {
+              _tmp_2 = _cursor.getString(_cursorIndexOfCurtidas);
+            }
+            _tmpCurtidas = __converters.fromString(_tmp_2);
+            final List<String> _tmpFavoritos;
+            final String _tmp_3;
+            if (_cursor.isNull(_cursorIndexOfFavoritos)) {
+              _tmp_3 = null;
+            } else {
+              _tmp_3 = _cursor.getString(_cursorIndexOfFavoritos);
+            }
+            _tmpFavoritos = __converters.fromString(_tmp_3);
+            final List<String> _tmpTags;
+            final String _tmp_4;
+            if (_cursor.isNull(_cursorIndexOfTags)) {
+              _tmp_4 = null;
+            } else {
+              _tmp_4 = _cursor.getString(_cursorIndexOfTags);
+            }
+            _tmpTags = __converters.fromString(_tmp_4);
+            final boolean _tmpIsSynced;
+            final int _tmp_5;
+            _tmp_5 = _cursor.getInt(_cursorIndexOfIsSynced);
+            _tmpIsSynced = _tmp_5 != 0;
+            final long _tmpLastModified;
+            _tmpLastModified = _cursor.getLong(_cursorIndexOfLastModified);
+            _item = new ReceitaEntity(_tmpId,_tmpNome,_tmpDescricaoCurta,_tmpImagemUrl,_tmpIngredientes,_tmpModoPreparo,_tmpTempoPreparo,_tmpPorcoes,_tmpUserId,_tmpUserEmail,_tmpCurtidas,_tmpFavoritos,_tmpTags,_tmpIsSynced,_tmpLastModified);
+            _result.add(_item);
+          }
+          return _result;
+        } finally {
+          _cursor.close();
+          _statement.release();
+        }
+      }
+    }, $completion);
+  }
+
   @NonNull
   public static List<Class<?>> getRequiredConverters() {
     return Collections.emptyList();

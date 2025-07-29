@@ -20,6 +20,9 @@ import com.example.myapplication.core.data.network.ConnectivityObserver
 import com.example.myapplication.core.data.storage.ImageStorageService
 import com.example.myapplication.core.ui.error.ErrorHandler
 import com.example.myapplication.workers.SyncWorker
+import com.example.myapplication.workers.OfflineSyncWorker
+import com.example.myapplication.workers.RecipeReminderWorker
+import com.example.myapplication.notifications.RecipeNotificationService
 import com.example.myapplication.core.data.network.GeminiServiceImpl
 import com.example.myapplication.core.data.SupabaseImageUploader
 // import dagger.hilt.android.AndroidEntryPoint
@@ -79,6 +82,9 @@ class MainActivity : ComponentActivity() {
         // Configurar sincronização periódica com WorkManager
         configurarSincronizacao()
         
+        // Configurar sistema de notificações inteligentes
+        configurarNotificacoes()
+        
         // Popular banco de dados com receitas predefinidas (apenas uma vez)
         seedDatabaseIfNeeded()
         
@@ -106,12 +112,59 @@ class MainActivity : ComponentActivity() {
             .setRequiredNetworkType(NetworkType.CONNECTED)
             .build()
             
-        val syncWorkRequest = PeriodicWorkRequestBuilder<SyncWorker>(
+        // Worker de sincronização inteligente que adapta baseado no tipo de rede
+        val offlineSyncWorkRequest = PeriodicWorkRequestBuilder<OfflineSyncWorker>(
             2, TimeUnit.HOURS // Sincronizar a cada 2 horas para economizar bateria e dados
         )
             .setConstraints(constraints)
             .build()
             
-        WorkManager.getInstance(this).enqueue(syncWorkRequest)
+        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+            "offline_sync_work",
+            androidx.work.ExistingPeriodicWorkPolicy.KEEP,
+            offlineSyncWorkRequest
+        )
+    }
+    
+    private fun configurarNotificacoes() {
+        // Inicializar o serviço de notificações
+        val notificationService = RecipeNotificationService(this)
+        
+        // Configurar lembretes periódicos
+        notificationService.schedulePeriodicReminders()
+        
+        // Configurar lembretes baseados em ingredientes (a cada 6 horas)
+        val ingredientConstraints = Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.NOT_REQUIRED)
+            .build()
+            
+        val ingredientReminderWork = PeriodicWorkRequestBuilder<RecipeReminderWorker>(
+            6, TimeUnit.HOURS
+        )
+            .setConstraints(ingredientConstraints)
+            .build()
+            
+        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+            "ingredient_reminders",
+            androidx.work.ExistingPeriodicWorkPolicy.KEEP,
+            ingredientReminderWork
+        )
+        
+        // Configurar lembretes baseados no horário das refeições (a cada 4 horas)
+        val mealTimeConstraints = Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.NOT_REQUIRED)
+            .build()
+            
+        val mealTimeReminderWork = PeriodicWorkRequestBuilder<RecipeReminderWorker>(
+            4, TimeUnit.HOURS
+        )
+            .setConstraints(mealTimeConstraints)
+            .build()
+            
+        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+            "meal_time_reminders",
+            androidx.work.ExistingPeriodicWorkPolicy.KEEP,
+            mealTimeReminderWork
+        )
     }
 }

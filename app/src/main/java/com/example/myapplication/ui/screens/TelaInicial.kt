@@ -56,6 +56,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
+import com.example.myapplication.ui.components.CachedImage
 import com.example.myapplication.navigation.AppScreens
 import com.example.myapplication.ui.components.BottomNavigationBar
 import kotlinx.coroutines.launch

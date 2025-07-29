@@ -10,6 +10,10 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.NotificationsOff
+import androidx.compose.material.icons.filled.Restaurant
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Palette
@@ -39,6 +43,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.foundation.layout.size
 import com.example.myapplication.notifications.NotificationHelper
+import com.example.myapplication.notifications.RecipeNotificationService
 import com.example.myapplication.core.data.repository.ReceitasRepository
 import com.example.myapplication.core.data.database.AppDatabase
 import com.example.myapplication.core.data.network.ConnectivityObserver
@@ -196,6 +201,97 @@ fun ConfiguracoesScreen(
                         }
                         Spacer(Modifier.width(8.dp))
                         Text(if (isSeedingDatabase) "Populando..." else "Popular Banco de Dados")
+                    }
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    // Seção de Notificações Inteligentes
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp)
+                        ) {
+                            Text(
+                                text = "Notificações Inteligentes",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            
+                            Spacer(modifier = Modifier.height(8.dp))
+                            
+                            Text(
+                                text = "Configure lembretes personalizados para suas receitas favoritas",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                            )
+                            
+                            Spacer(modifier = Modifier.height(12.dp))
+                            
+                            Button(
+                                onClick = {
+                                    val notificationService = RecipeNotificationService(context)
+                                    notificationService.scheduleFavoriteReminders()
+                                    Toast.makeText(context, "Lembretes para favoritos agendados!", Toast.LENGTH_SHORT).show()
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(Icons.Filled.Favorite, contentDescription = "Favoritos")
+                                Spacer(Modifier.width(8.dp))
+                                Text("Agendar Lembretes para Favoritos")
+                            }
+                            
+                            Spacer(modifier = Modifier.height(8.dp))
+                            
+                            Button(
+                                onClick = {
+                                    val notificationService = RecipeNotificationService(context)
+                                    notificationService.scheduleIngredientBasedReminders()
+                                    Toast.makeText(context, "Lembretes baseados em ingredientes agendados!", Toast.LENGTH_SHORT).show()
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(Icons.Filled.Restaurant, contentDescription = "Ingredientes")
+                                Spacer(Modifier.width(8.dp))
+                                Text("Lembretes por Ingredientes")
+                            }
+                            
+                            Spacer(modifier = Modifier.height(8.dp))
+                            
+                            Button(
+                                onClick = {
+                                    val notificationService = RecipeNotificationService(context)
+                                    notificationService.scheduleMealTimeReminders()
+                                    Toast.makeText(context, "Lembretes por horário agendados!", Toast.LENGTH_SHORT).show()
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(Icons.Filled.Schedule, contentDescription = "Horário")
+                                Spacer(Modifier.width(8.dp))
+                                Text("Lembretes por Horário")
+                            }
+                            
+                            Spacer(modifier = Modifier.height(8.dp))
+                            
+                            Button(
+                                onClick = {
+                                    val notificationService = RecipeNotificationService(context)
+                                    notificationService.cancelAllReminders()
+                                    Toast.makeText(context, "Todos os lembretes cancelados!", Toast.LENGTH_SHORT).show()
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.error
+                                )
+                            ) {
+                                Icon(Icons.Filled.NotificationsOff, contentDescription = "Cancelar")
+                                Spacer(Modifier.width(8.dp))
+                                Text("Cancelar Todos os Lembretes")
+                            }
+                        }
                     }
                     
                     Spacer(modifier = Modifier.height(8.dp))

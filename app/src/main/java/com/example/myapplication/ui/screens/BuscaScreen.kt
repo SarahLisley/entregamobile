@@ -19,9 +19,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
+import com.example.myapplication.ui.components.CachedImage
+import com.example.myapplication.ui.components.ReceitasPaginatedListWithSearch
 import com.example.myapplication.core.data.repository.ReceitasRepository
 import com.example.myapplication.navigation.AppScreens
 import com.example.myapplication.ui.components.BottomNavigationBar
+import com.example.myapplication.ui.components.SwipeableRecipeCard
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.myapplication.feature.receitas.ReceitasViewModel
 import com.example.myapplication.ui.screens.ViewModelFactory
@@ -142,22 +145,16 @@ fun BuscaScreen(navController: NavHostController) {
                 } else {
                     LazyColumn {
                         items(filteredReceitas) { receita ->
-                            ReceitaCardFirebase(
-                                receita = receita.toMap(),
-                                onClick = {
+                            SwipeableRecipeCard(
+                                receita = receita,
+                                onSwipeToFavorite = {
+                                    receitasViewModel.favoritarReceita(receita.id, receita.userId, receita.favoritos)
+                                },
+                                onCardClick = {
                                     navController.navigate(AppScreens.DetalheScreen.createRoute(receita.id))
                                 },
-                                onEdit = {
-                                    navController.navigate(AppScreens.DetalheScreen.createRoute(receita.id, startInEditMode = true))
-                                },
-                                onDelete = {
-                                    receitasViewModel.deletarReceita(receita.id, receita.imagemUrl)
-                                },
-                                onCurtir = { id, userId, curtidas ->
-                                    receitasViewModel.curtirReceita(id, userId, curtidas)
-                                },
-                                onFavoritar = { id, userId, favoritos ->
-                                    receitasViewModel.favoritarReceita(id, userId, favoritos)
+                                onFavoriteClick = { isFavorite ->
+                                    receitasViewModel.favoritarReceita(receita.id, receita.userId, receita.favoritos)
                                 }
                             )
                             Spacer(modifier = Modifier.height(8.dp))

@@ -39,4 +39,17 @@ interface ReceitaDao {
     
     @Query("DELETE FROM receitas")
     suspend fun deleteAllReceitas()
+    
+    // Métodos de paginação
+    @Query("SELECT * FROM receitas ORDER BY lastModified DESC LIMIT :limit OFFSET :offset")
+    suspend fun getReceitasPaginated(offset: Int, limit: Int): List<ReceitaEntity>
+    
+    @Query("SELECT * FROM receitas WHERE nome LIKE :query ORDER BY lastModified DESC LIMIT :limit OFFSET :offset")
+    suspend fun searchReceitasPaginated(query: String, offset: Int, limit: Int): List<ReceitaEntity>
+    
+    @Query("SELECT * FROM receitas WHERE favoritos LIKE '%' || :userId || '%' ORDER BY lastModified DESC LIMIT :limit OFFSET :offset")
+    suspend fun getFavoritosPaginated(userId: String, offset: Int, limit: Int): List<ReceitaEntity>
+    
+    @Query("SELECT * FROM receitas WHERE tags LIKE '%' || :tag || '%' ORDER BY lastModified DESC LIMIT :limit OFFSET :offset")
+    suspend fun getReceitasPorTagPaginated(tag: String, offset: Int, limit: Int): List<ReceitaEntity>
 } 
